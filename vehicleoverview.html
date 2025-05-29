@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Overview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Outfit', sans-serif;
+            background: #121212;
+            color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .dropdown-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            width: 100%;
+        }
+
+        .dropdown-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .dropdown-wrapper label {
+            color: #f0f0f0;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        select {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 10px;
+            font-size: 1rem;
+            backdrop-filter: blur(8px);
+            appearance: none;
+            transition: border 0.3s, background 0.3s;
+        }
+
+        select:focus {
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        option {
+            background-color: #2b2b2b;
+            color: #fff;
+        }
+
+
+        select {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            font-size: 1rem;
+            backdrop-filter: blur(8px);
+        }
+
+        .vehicle-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            justify-content: center;
+        }
+
+        .vehicle-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            width: 280px;
+            padding: 1rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .vehicle-card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        .vehicle-card img {
+            width: 100%;
+            border-radius: 12px;
+        }
+
+        .vehicle-info {
+            margin-top: 1rem;
+        }
+
+        .vehicle-info h3 {
+            margin: 0.5rem 0;
+        }
+
+        .vehicle-info p {
+            margin: 0.25rem 0;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: rgba(30, 30, 30, 0.95);
+            backdrop-filter: blur(12px);
+            padding: 2rem;
+            border-radius: 16px;
+            color: #f0f0f0;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+        }
+
+        .modal-content img {
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .search-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+#vehicleSearch {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 1rem;
+  backdrop-filter: blur(8px);
+  font-family: 'Outfit', sans-serif;
+}
+
+#vehicleSearch::placeholder {
+  color: #aaa;
+}
+
+#vehicleSearch:focus {
+  outline: none;
+  border-color: #5ca9ff;
+}
+
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Vehicle Overview</h1>
+        <div class="dropdown-container">
+            <div class="dropdown-wrapper">
+                <label for="reputation">Reputation Discount:</label>
+                <select id="reputation" onchange="updatePrices()">
+      <option value="neutral">Neutral</option>
+      <option value="positive1">Positive +</option>
+      <option value="positive2">Positive ++</option>
+      <option value="positive3">Positive +++</option>
+      <option value="negative1">Negative +</option>
+      <option value="negative2">Negative ++</option>
+      <option value="negative3">Negative +++</option>
+    </select>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <input
+    type="text"
+    id="vehicleSearch"
+    placeholder="Search vehicles..."
+    oninput="filterVehicles()"
+  />
+        </div>
+        <div id="vehicle-container" class="vehicle-container"></div>
+    </div>
+
+    <div id="vehicleModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle"></h2>
+            <img id="modalImage" src="" alt="Vehicle Image">
+            <p id="modalPrice"></p>
+            <p id="modalOres"></p>
+            <p id="modalHoneycombs"></p>
+            <p id="modalCanisters"></p>
+            <p id="modalColors"></p>
+            <p id="modalBuy"></p>
+            <p id="modalUse"></p>
+        </div>
+    </div>
+
+    <script src="vehicleoverview.js"></script>
+</body>
+
+</html>
