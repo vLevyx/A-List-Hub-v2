@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A-List Plus Whitelist</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      /* Prevent zoom on input focus for iOS */
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: 'Outfit', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      /* Ensure background is always visible */
+      background: #0c0c0c;
+      background-image: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      background-size: cover;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      /* iOS Safari fix */
+      color: #ffffff;
+      overflow-x: hidden;
+      position: relative;
+      /* Ensure body takes full height on mobile */
+      height: 100%;
+    }
+
+    /* Force height on mobile browsers */
+    html,
+    body {
+      height: 100%;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+    }
+
+    /* Animated background particles - Enhanced for mobile */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      /* Fallback background for older browsers */
+      background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+      background-image:
+        radial-gradient(circle at 20% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 30%),
+        radial-gradient(circle at 80% 20%, rgba(255, 215, 0, 0.08) 0%, transparent 30%),
+        radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.03) 0%, transparent 30%);
+      animation: shimmer 8s ease-in-out infinite alternate;
+      pointer-events: none;
+      z-index: -1;
+      /* Ensure it stays in place on mobile */
+      transform: translateZ(0);
+      will-change: opacity;
+    }
+
+    @keyframes shimmer {
+      0% {
+        opacity: 0.5;
+      }
+
+      100% {
+        opacity: 1;
+      }
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .glass-card {
+      /* Enhanced fallback for mobile browsers */
+      background-color: rgba(18, 18, 18, 0.95);
+      background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+      /* Glassmorphism with fallbacks */
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 3rem 2.5rem;
+      box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      max-width: 600px;
+      animation: slideUp 0.8s ease-out;
+      /* Ensure proper stacking */
+      z-index: 2;
+      /* Hardware acceleration for mobile */
+      transform: translateZ(0);
+      will-change: transform;
+    }
+
+    /* Fallback for browsers that don't support backdrop-filter */
+    @supports not (backdrop-filter: blur(20px)) {
+      .glass-card {
+        background: rgba(18, 18, 18, 0.95);
+        background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.5), transparent);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .crown-icon {
+      font-size: 3rem;
+      color: #ffd700;
+      margin-bottom: 1rem;
+      display: block;
+      text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      from {
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+      }
+
+      to {
+        text-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.3);
+      }
+    }
+
+    .title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-align: center;
+      /* Fallback for browsers that don't support background-clip */
+      color: #ffd700;
+    }
+
+    /* Ensure gradient text works on mobile */
+    @supports (-webkit-background-clip: text) {
+      .title {
+        color: transparent;
+      }
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 300;
+    }
+
+    .content {
+      margin-bottom: 2.5rem;
+    }
+
+    .info-list {
+      list-style: none;
+      margin-bottom: 2rem;
+    }
+
+    .info-item {
+      margin-bottom: 1.2rem;
+      padding-left: 2rem;
+      position: relative;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1.05rem;
+    }
+
+    .info-item::before {
+      content: '✦';
+      position: absolute;
+      left: 0;
+      color: #ffd700;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+
+    .price-highlight {
+      color: #ffd700;
+      font-weight: 600;
+      font-size: 1.1em;
+    }
+
+    .trial-notice {
+      background: rgba(255, 215, 0, 0.1);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      text-align: center;
+    }
+
+    .trial-notice h3 {
+      color: #ffd700;
+      margin-bottom: 0.5rem;
+      font-size: 1.3rem;
+    }
+
+    /* Form Styles */
+    .form-section {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      border-radius: 16px;
+      padding: 2rem;
+      margin: 2rem 0;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    /* Fallback for browsers that don't support backdrop-filter */
+    @supports not (backdrop-filter: blur(10px)) {
+      .form-section {
+        background: rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    .form-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #ffd700;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.3px;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      font-size: 1rem;
+      font-family: inherit;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      /* Prevent zoom on iOS */
+      font-size: 16px;
+    }
+
+    /* Fallback for browsers that don't support backdrop-filter */
+    @supports not (backdrop-filter: blur(10px)) {
+      input {
+        background: rgba(255, 255, 255, 0.12);
+      }
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #ffd700;
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+    }
+
+    input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .submit-button {
+      width: 100%;
+      padding: 1rem 2rem;
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+      color: #000000;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        0 8px 25px rgba(255, 215, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      margin-top: 1rem;
+      /* Prevent touch delay on mobile */
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .submit-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.6s;
+    }
+
+    .submit-button:hover::before,
+    .submit-button:active::before {
+      left: 100%;
+    }
+
+    .submit-button:hover,
+    .submit-button:active {
+      transform: translateY(-2px);
+      box-shadow:
+        0 12px 35px rgba(255, 215, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    .submit-button:active {
+      transform: translateY(0);
+    }
+
+    .submit-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status-message {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 1rem;
+      border-radius: 8px;
+      min-height: 1rem;
+    }
+
+    .status-success {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #22c55e;
+    }
+
+    .status-error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+    }
+
+    .status-warning {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #f59e0b;
+    }
+
+    .status-info {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #3b82f6;
+    }
+
+    .footer-text {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 1.1rem;
+      color: #ffd700;
+      font-weight: 500;
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.3), transparent);
+      margin: 2rem 0;
+    }
+
+    .crown-wrapper {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 1rem;
+    }
+
+    .crown-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      position: relative;
+      z-index: 2;
+    }
+
+    .crown-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 80px;
+      height: 80px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 215, 0, 0.4), transparent 70%);
+      filter: blur(12px);
+      animation: pulseGlow 2.5s ease-in-out infinite alternate;
+      z-index: 1;
+    }
+
+    @keyframes pulseGlow {
+      0% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2);
+      }
+    }
+
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+      body {
+        /* Ensure background is always visible on mobile */
+        background-attachment: scroll;
+      }
+
+      .container {
+        padding: 1rem;
+        /* Adjust min-height for mobile browsers */
+        min-height: 100vh;
+        min-height: -webkit-fill-available;
+      }
+
+      .glass-card {
+        padding: 2rem 1.5rem;
+        border-radius: 20px;
+        /* Enhance mobile glassmorphism */
+        background-color: rgba(18, 18, 18, 0.98);
+      }
+
+      .title {
+        font-size: 2rem;
+      }
+
+      .crown-icon {
+        font-size: 2.5rem;
+      }
+
+      .info-item {
+        font-size: 1rem;
+        padding-left: 1.5rem;
+      }
+
+      .form-section {
+        padding: 1.5rem;
+        /* Ensure form background is visible on mobile */
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .form-title {
+        font-size: 1.3rem;
+      }
+
+      /* Improve input focus on mobile */
+      input {
+        font-size: 16px;
+        /* Prevent zoom on iOS */
+        -webkit-appearance: none;
+        appearance: none;
+      }
+    }
+
+    .crown-wrapper {
+      width: 48px;
+      height: 48px;
+    }
+
+    .crown-glow {
+      width: 64px;
+      height: 64px;
+    }
+
+    @media (max-width: 480px) {
+      .glass-card {
+        padding: 1.5rem 1rem;
+        margin: 1rem;
+        /* Stronger background for very small screens */
+        background-color: rgba(18, 18, 18, 0.99);
+      }
+
+      .title {
+        font-size: 1.8rem;
+      }
+
+      .info-item {
+        font-size: 0.95rem;
+        margin-bottom: 1rem;
+      }
+
+      .form-section {
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      input {
+        padding: 0.75rem;
+        font-size: 16px;
+      }
+
+      .submit-button {
+        font-size: 1rem;
+        padding: 0.875rem 1.5rem;
+      }
+    }
+
+    .crown-wrapper {
+      width: 48px;
+      height: 48px;
+    }
+
+    .crown-glow {
+      width: 64px;
+      height: 64px;
+    }
+
+    /* Specific fixes for iOS Safari */
+    @supports (-webkit-touch-callout: none) {
+      body {
+        /* iOS Safari specific height fix */
+        min-height: -webkit-fill-available;
+      }
+
+      .container {
+        min-height: -webkit-fill-available;
+      }
+
+      /* Ensure glassmorphism works on iOS */
+      .glass-card {
+        -webkit-backdrop-filter: blur(20px);
+        background: rgba(18, 18, 18, 0.95);
+      }
+    }
+
+    /* Android Chrome specific fixes */
+    @media screen and (-webkit-min-device-pixel-ratio: 0) {
+      .glass-card {
+        background: rgba(18, 18, 18, 0.95);
+        background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="glass-card">
+      <div class="header">
+        <div class="crown-wrapper">
+          <div class="crown-glow"></div>
+          <img src="https://icons.iconarchive.com/icons/microsoft/fluentui-emoji-3d/512/Crown-3d-icon.png"
+            alt="Crown Icon" class="crown-img" />
+        </div>
+        <h1 class="title">Request A-List Plus Whitelist</h1>
+        <p class="subtitle">Exclusive Premium Access</p>
+      </div>
+
+      <div class="content">
+        <ul class="info-list">
+          <li class="info-item">Complete the form below to start your premium trial experience</li>
+          <li class="info-item">Purchase price is <span class="price-highlight">$3,000,000</span></li>
+          <li class="info-item">Once form is submitted, one of the A-List Hub staff members will be in touch with you
+            via Discord DMs to
+            receive payment and complete your whitelist request</li>
+          <li class="info-item">This is a one-time purchase that unlocks all features and allows access to all
+            future updates</li>
+        </ul>
+
+        <div class="trial-notice">
+          <h3>🎁 Complimentary Trial Access</h3>
+          <p>Upon form submission, you will be granted a <strong>3-day trial</strong> to enjoy the features and explore
+            on your own while we process your request.</p>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-section">
+          <h2 class="form-title">
+            <span>⚡</span>
+            <span>Start Your Premium Trial</span>
+          </h2>
+
+          <div id="userStatusNotice" style="margin-top: 1.25rem;"></div>
+
+          <form id="whitelistForm">
+            <div class="form-group">
+              <label for="ign">In-Game Name</label>
+              <input type="text" id="ign" placeholder="Enter your IGN" required />
+            </div>
+
+            <button type="submit" class="submit-button">
+              Activate Premium Trial
+            </button>
+          </form>
+
+          <div id="statusMsg" class="status-message"></div>
+        </div>
+
+        <p class="footer-text">Enjoy your exclusive experience!</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const client = supabase.createClient(
+      'https://dsexkdjxmhgqahrlkvax.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzZXhrZGp4bWhncWFocmxrdmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0ODAxNTAsImV4cCI6MjA2NDA1NjE1MH0.RW_ROpcNUNZaK9xGH2OFwHBSmFsGrLj-yi3LWCPBCvA'
+    );
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const form = document.getElementById('whitelistForm');
+      const formSection = document.querySelector('.form-section');
+      const statusMsg = document.getElementById('statusMsg');
+      const submitButton = form.querySelector('.submit-button');
+      const statusNotice = document.getElementById('userStatusNotice');
+
+      const { data: { session }, error } = await client.auth.getSession();
+      if (error || !session?.user) {
+        formSection.innerHTML = `
+    <h2 class="form-title">
+      <span>⚡</span>
+      <span>Start Your Premium Trial</span>
+    </h2>
+    <div class="status-message status-warning" style="margin-top: 1rem;">
+      ⚠️ Please log in with Discord first.
+    </div>
+  `;
+        return;
+      }
+
+      const discordId = session.user.user_metadata.provider_id || session.user.user_metadata.sub;
+      const discordUsername = session.user.user_metadata.user_name || session.user.user_metadata.full_name;
+
+      const { data: userData, error: userError } = await client
+        .from('users')
+        .select('hub_trial, revoked, trial_expiration')
+        .eq('discord_id', discordId)
+        .single();
+
+      if (userError) {
+        showTopStatus('❌ Unable to fetch your trial status.', 'error');
+        formSection.style.display = 'none';
+        return;
+      }
+
+      const now = new Date();
+      const isTrialActive = userData.trial_expiration && new Date(userData.trial_expiration) > now;
+
+      let formShouldBeShown = true;
+
+      if (userData.revoked === false) {
+        showTopStatus('✅ You are currently whitelisted.', 'success');
+        formShouldBeShown = false;
+      }
+
+      if (userData.hub_trial && isTrialActive) {
+        showTopStatus('⏳ You have already claimed your free trial.', 'warning');
+
+        const countdown = document.createElement('div');
+        countdown.className = 'status-message status-info';
+        countdown.id = 'trialCountdown';
+        statusNotice.appendChild(countdown);
+
+        const expiration = new Date(userData.trial_expiration);
+        const updateCountdown = () => {
+          const diff = expiration - new Date();
+          if (diff <= 0) {
+            countdown.textContent = '⏰ Your trial has expired.';
+            clearInterval(timer);
+          } else {
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diff / (1000 * 60)) % 60);
+            const seconds = Math.floor((diff / 1000) % 60);
+            countdown.textContent = `⏳ Trial ends in: ${hours}h ${minutes}m ${seconds}s`;
+          }
+        };
+
+        updateCountdown();
+        const timer = setInterval(updateCountdown, 1000);
+
+        formShouldBeShown = false;
+      }
+
+      // Final display toggle
+      const formElement = formSection.querySelector('form');
+      formElement.style.display = formShouldBeShown ? 'block' : 'none';
+
+      // Form submit
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        submitButton.disabled = true;
+        submitButton.textContent = 'Processing...';
+        updateStatus('Submitting your request...', 'info');
+
+        const ign = document.getElementById('ign').value.trim();
+
+        try {
+          const { error } = await client.rpc('start_trial', {
+            discord_id_input: discordId
+          });
+
+          if (error) {
+            console.error(error);
+            updateStatus('❌ Failed to activate trial.', 'error');
+            submitButton.disabled = false;
+            submitButton.textContent = 'Activate Premium Trial';
+            return;
+          }
+
+          const now = Math.floor(Date.now() / 1000);
+          const trialEnds = now + 3 * 24 * 60 * 60; // 72 hours from now
+
+          await fetch('https://discord.com/api/webhooks/1378905163523297380/9zqtspJ2PgZ4mJ93Dvqk0GBXPzCYXbG3TOTglTOPXRm9Rs3ybXmJOTbn0Zjytkfpr-bV', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: '<@&1302868390016323604>',
+              username: 'A-List Hub',
+              embeds: [{
+                color: 0x00c6ff,
+                title: '📬 New Whitelist Request',
+                description: `A user has started a 72-hour trial.`,
+                fields: [
+                  { name: '🧑 In-Game Name', value: ign, inline: true },
+                  { name: '💬 Discord Username', value: discordUsername, inline: true },
+                  { name: '🆔 Discord ID', value: discordId, inline: false },
+                  { name: '⏳ Trial Ends', value: `<t:${trialEnds}:R>`, inline: false }
+                ],
+                footer: { text: 'A-List Hub Whitelist System' },
+                timestamp: new Date().toISOString()
+              }]
+            })
+          });
+
+
+          updateStatus('✅ Trial activated! You now have 72 hours of premium access.', 'success');
+          form.reset();
+          form.style.display = 'none';
+
+        } catch (err) {
+          console.error("[❌ ERROR]", err);
+          updateStatus('❌ An unexpected error occurred. Please try again later.', 'error');
+          submitButton.disabled = false;
+          submitButton.textContent = 'Activate Premium Trial';
+        }
+      });
+
+      function updateStatus(message, type = 'info') {
+        statusMsg.textContent = message;
+        statusMsg.className = `status-message status-${type}`;
+      }
+
+      function showTopStatus(message, type = 'info') {
+        const div = document.createElement('div');
+        div.className = `status-message status-${type}`;
+        div.textContent = message;
+        statusNotice.appendChild(div);
+      }
+    });
+  </script>
+  <script type="module" src="heartbeat.js"></script>
+
+
+</body>
+
+</html>

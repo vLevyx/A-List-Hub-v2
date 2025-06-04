@@ -1,3 +1,4 @@
+// Vehicle data - loaded first as it's required by all functions
 const vehicles = [
   {
     "name": "M1025 Light Armored Vehicle",
@@ -198,8 +199,9 @@ const vehicles = [
     "whereToBuy": "Only obtainable through crafting",
     "usage": "United States Tactical helicopter mobility. Holds: 2 Pilots - 10 Passengers"
   }
-];;
+];
 
+// Configuration constants
 const discountRates = {
   neutral: 0,
   positive1: -5.5,
@@ -210,85 +212,230 @@ const discountRates = {
   negative3: 53.0
 };
 
-function renderVehicles() {
-  const container = document.getElementById('vehicle-container');
-  container.innerHTML = '';
-  vehicles.forEach(vehicle => {
-    const vehicleCard = document.createElement('div');
-    vehicleCard.className = 'vehicle-card';
-    vehicleCard.innerHTML = `
-            <img src="${vehicle.photo}" alt="${vehicle.name}">
-            <div class="vehicle-info">
-                <h3>${vehicle.name}</h3>
-                <p>Price: $${vehicle.price.toLocaleString()}</p>
-                <p>
-    ${vehicle["Canisters"] ? `Canisters: ${vehicle["Canisters"]}` : vehicle.honeycombs ? `Honeycombs: ${vehicle.honeycombs}` : `Ores: ${vehicle.ores}`}
-                </p>
-            </div>
-        `;
-    vehicleCard.addEventListener('click', () => {
-      openModal(vehicle, Math.round(vehicle.price));
-    });
-    container.appendChild(vehicleCard);
-  });
+// Cache DOM elements to avoid repeated queries
+let cachedElements = null;
+
+function getCachedElements() {
+  if (!cachedElements) {
+    cachedElements = {
+      container: document.getElementById('vehicle-container'),
+      reputation: document.getElementById('reputation'),
+      vehicleSearch: document.getElementById('vehicleSearch'),
+      modal: document.getElementById('vehicleModal'),
+      modalTitle: document.getElementById('modalTitle'),
+      modalImage: document.getElementById('modalImage'),
+      modalPrice: document.getElementById('modalPrice'),
+      modalOres: document.getElementById('modalOres'),
+      modalHoneycombs: document.getElementById('modalHoneycombs'),
+      modalCanisters: document.getElementById('modalCanisters'),
+      modalColors: document.getElementById('modalColors'),
+      modalBuy: document.getElementById('modalBuy'),
+      modalUse: document.getElementById('modalUse')
+    };
+  }
+  return cachedElements;
 }
 
+// Utility functions
+function formatPrice(price) {
+  return `$${Math.round(price).toLocaleString()}`;
+}
+
+function calculateAdjustedPrice(basePrice, reputationLevel) {
+  const discount = discountRates[reputationLevel] || 0;
+  return basePrice * (1 + (discount / 100));
+}
+
+function getResourceDisplay(vehicle) {
+  if (vehicle.Canisters) return `Canisters: ${vehicle.Canisters}`;
+  if (vehicle.honeycombs) return `Honeycombs: ${vehicle.honeycombs}`;
+  return `Ores: ${vehicle.ores}`;
+}
+
+// Optimized vehicle card creation with DocumentFragment for better performance
+function createVehicleCard(vehicle, adjustedPrice) {
+  const vehicleCard = document.createElement('div');
+  vehicleCard.className = 'vehicle-card';
+  vehicleCard.innerHTML = `
+    <img src="${vehicle.photo}" alt="${vehicle.name}" loading="lazy">
+    <div class="vehicle-info">
+      <h3>${vehicle.name}</h3>
+      <p>${formatPrice(adjustedPrice)}</p>
+      <p>${getResourceDisplay(vehicle)}</p>
+    </div>
+  `;
+
+  // Use event delegation pattern for better performance
+  vehicleCard.addEventListener('click', () => openModal(vehicle, adjustedPrice), { passive: true });
+
+  return vehicleCard;
+}
+
+// Main rendering function with performance optimizations
+function renderVehicles(reputationLevel = 'neutral') {
+  const elements = getCachedElements();
+  const container = elements.container;
+
+  if (!container) {
+    console.error('Vehicle container not found');
+    return;
+  }
+
+  // Use DocumentFragment for efficient DOM manipulation
+  const fragment = document.createDocumentFragment();
+
+  // Clear container efficiently
+  container.innerHTML = '';
+
+  vehicles.forEach(vehicle => {
+    const adjustedPrice = calculateAdjustedPrice(vehicle.price, reputationLevel);
+    const vehicleCard = createVehicleCard(vehicle, adjustedPrice);
+    fragment.appendChild(vehicleCard);
+  });
+
+  container.appendChild(fragment);
+}
+
+// Optimized price update function
 function updatePrices() {
-  const selectedReputation = document.getElementById('reputation').value;
-  const discount = discountRates[selectedReputation];
-
-  const container = document.getElementById('vehicle-container');
-  container.innerHTML = '';
-
-  vehicles.forEach(vehicle => {
-    const adjustedPrice = vehicle.price * (1 + (discount / 100));
-    const vehicleCard = document.createElement('div');
-    vehicleCard.className = 'vehicle-card';
-    vehicleCard.innerHTML = `
-            <img src="${vehicle.photo}" alt="${vehicle.name}">
-            <div class="vehicle-info">
-                <h3>${vehicle.name}</h3>
-                <p>Price: $${Math.round(adjustedPrice).toLocaleString()}</p>
-                <p>
-    ${vehicle["Canisters"] ? `Canisters: ${vehicle["Canisters"]}` : vehicle.honeycombs ? `Honeycombs: ${vehicle.honeycombs}` : `Ores: ${vehicle.ores}`}
-</p>
-            </div>
-        `;
-    vehicleCard.addEventListener('click', () => {
-      openModal(vehicle, Math.round(adjustedPrice));
-    });
-    container.appendChild(vehicleCard);
-  });
+  const elements = getCachedElements();
+  const selectedReputation = elements.reputation?.value || 'neutral';
+  renderVehicles(selectedReputation);
 }
 
+// Optimized search function with debouncing for better performance
+let searchTimeout;
 function filterVehicles() {
-  const query = document.getElementById('vehicleSearch').value.toLowerCase();
-  const allCards = document.querySelectorAll('.vehicle-card');
-  allCards.forEach(card => {
-    const name = card.querySelector('h3').textContent.toLowerCase();
-    card.style.display = name.includes(query) ? 'block' : 'none';
+  // Clear previous timeout to debounce rapid typing
+  clearTimeout(searchTimeout);
+
+  searchTimeout = setTimeout(() => {
+    const elements = getCachedElements();
+    const query = elements.vehicleSearch?.value.toLowerCase() || '';
+    const allCards = elements.container?.querySelectorAll('.vehicle-card') || [];
+
+    // Use requestAnimationFrame for smooth animations
+    requestAnimationFrame(() => {
+      allCards.forEach(card => {
+        const nameElement = card.querySelector('h3');
+        if (nameElement) {
+          const name = nameElement.textContent.toLowerCase();
+          card.style.display = name.includes(query) ? 'block' : 'none';
+        }
+      });
+    });
+  }, 150); // 150ms debounce delay
+}
+
+// Modal functions with improved accessibility and performance
+function openModal(vehicle, adjustedPrice) {
+  const elements = getCachedElements();
+
+  if (!elements.modal) {
+    console.error('Modal elements not found');
+    return;
+  }
+
+  // Batch DOM updates for better performance
+  requestAnimationFrame(() => {
+    elements.modalTitle.textContent = vehicle.name;
+    elements.modalImage.src = vehicle.photo;
+    elements.modalImage.alt = vehicle.name;
+    elements.modalPrice.textContent = formatPrice(adjustedPrice);
+    elements.modalOres.textContent = vehicle.ores ? `Ores: ${vehicle.ores}` : '';
+    elements.modalHoneycombs.textContent = vehicle.honeycombs ? `Honeycombs: ${vehicle.honeycombs}` : '';
+    elements.modalCanisters.textContent = vehicle.Canisters ? `Canisters: ${vehicle.Canisters}` : '';
+    elements.modalColors.textContent = vehicle.colors ? `Available Colors: ${vehicle.colors}` : 'Available Colors: TBD';
+    elements.modalBuy.textContent = vehicle.whereToBuy ? `Where to Buy: ${vehicle.whereToBuy}` : 'Where to Buy: Vendor or Marketplace';
+    elements.modalUse.textContent = vehicle.usage ? `Recommended Use: ${vehicle.usage}` : '';
+
+    elements.modal.classList.remove('hidden');
+
+    // Focus management for accessibility
+    elements.modal.focus();
   });
 }
-
-
-function openModal(vehicle, adjustedPrice) {
-  document.getElementById('modalTitle').textContent = vehicle.name;
-  document.getElementById('modalImage').src = vehicle.photo;
-  document.getElementById('modalPrice').textContent = `Price: $${adjustedPrice.toLocaleString()}`;
-  document.getElementById('modalOres').textContent = vehicle.ores ? `Ores: ${vehicle.ores}` : '';
-  document.getElementById('modalHoneycombs').textContent = vehicle.honeycombs ? `Honeycombs: ${vehicle.honeycombs}` : '';
-  document.getElementById('modalCanisters').textContent = vehicle["Canisters"] ? `Canisters: ${vehicle["Canisters"]}` : '';
-  document.getElementById('modalColors').textContent = vehicle.colors ? `Available Colors: ${vehicle.colors}` : 'Available Colors: TBD';
-  document.getElementById('modalBuy').textContent = vehicle.whereToBuy ? `Where to Buy: ${vehicle.whereToBuy}` : 'Where to Buy: Vendor or Marketplace';
-  document.getElementById('modalUse').textContent = vehicle.usage ? `Recommended Use: ${vehicle.usage}` : '';
-  document.getElementById('vehicleModal').classList.remove('hidden');
-}
-
 
 function closeModal() {
-  document.getElementById('vehicleModal').classList.add('hidden');
+  const elements = getCachedElements();
+  if (elements.modal) {
+    elements.modal.classList.add('hidden');
+  }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  renderVehicles();
-});
+// Enhanced event listener setup with proper error handling
+function setupEventListeners() {
+  const elements = getCachedElements();
+
+  // Reputation change listener
+  if (elements.reputation) {
+    elements.reputation.addEventListener('change', updatePrices, { passive: true });
+  }
+
+  // Search input listener with debouncing
+  if (elements.vehicleSearch) {
+    elements.vehicleSearch.addEventListener('input', filterVehicles, { passive: true });
+  }
+
+  // Modal close on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && elements.modal && !elements.modal.classList.contains('hidden')) {
+      closeModal();
+    }
+  }, { passive: true });
+
+  // Modal close on backdrop click
+  if (elements.modal) {
+    elements.modal.addEventListener('click', (e) => {
+      if (e.target === elements.modal) {
+        closeModal();
+      }
+    }, { passive: true });
+  }
+}
+
+// Optimized initialization with error handling and performance monitoring
+function initializeApp() {
+  try {
+    // Check if required elements exist
+    const container = document.getElementById('vehicle-container');
+    if (!container) {
+      console.error('Required DOM elements not found. Make sure vehicle-container exists.');
+      return;
+    }
+
+    // Setup event listeners first
+    setupEventListeners();
+
+    // Initial render
+    renderVehicles();
+
+    console.log('Vehicle display initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize vehicle display:', error);
+  }
+}
+
+// Enhanced DOM ready detection for better cross-browser compatibility
+function domReady(callback) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', callback);
+  } else {
+    // DOM is already ready
+    callback();
+  }
+}
+
+// Initialize when DOM is ready
+domReady(initializeApp);
+
+// Export functions for potential external use (if using modules)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    renderVehicles,
+    updatePrices,
+    filterVehicles,
+    openModal,
+    closeModal
+  };
+}

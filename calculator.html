@@ -180,12 +180,6 @@
       font-size: 1.25rem;
     }
 
-    @media (max-width: 600px) {
-      .kit-sidebar h3 {
-        margin-top: 10px;
-      }
-    }
-
     .kit-sidebar ul {
       list-style: none;
       padding: 0;
@@ -228,41 +222,6 @@
       flex-shrink: 0;
     }
 
-    @media (max-width: 600px) {
-      .kit-sidebar {
-        display: none;
-        border-left: none;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-        top: auto;
-        bottom: 0;
-        height: auto;
-        width: 100vw;
-      }
-
-      .kit-sidebar.active {
-        display: flex;
-      }
-
-      .kit-sidebar li {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .kit-sidebar li strong {
-        max-width: 100%;
-        white-space: normal;
-      }
-    }
-
-    .remove-btn {
-      background: #ff4c4c;
-      border: none;
-      color: white;
-      border-radius: 0.25rem;
-      padding: 0.25rem 0.5rem;
-      cursor: pointer;
-    }
-
     .quantity-wrapper {
       width: 100%;
       display: flex;
@@ -278,6 +237,51 @@
       font-size: 0.875rem;
       color: #888;
       margin-top: 2rem;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #444;
+      transition: 0.4s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.4s;
+      border-radius: 50%;
+    }
+
+    input:checked+.slider {
+      background-color: #00c6ff;
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(26px);
     }
 
     @media (max-width: 600px) {
@@ -314,53 +318,45 @@
         height: auto;
         width: 100vw;
         padding-top: 0.5rem;
-        /* ADD this */
         padding-bottom: 1rem;
-        /* Optional: ensure bottom space */
       }
 
       .kit-sidebar.active {
         display: flex;
       }
+
+      .kit-sidebar li {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .kit-sidebar li strong {
+        max-width: 100%;
+        white-space: normal;
+      }
     }
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-<script>
-  const supabase = supabase.createClient(
-    'https://dsexkdjxmhgqahrlkvax.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzZXhrZGp4bWhncWFocmxrdmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0ODAxNTAsImV4cCI6MjA2NDA1NjE1MH0.RW_ROpcNUNZaK9xGH2OFwHBSmFsGrLj-yi3LWCPBCvA'
-  );
-
-  async function protectPage() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      window.location.href = 'login.html';
-      return;
-    }
-
-    const { data: userData, error } = await supabase
-      .from('users')
-      .select('revoked')
-      .eq('id', session.user.id)
-      .single();
-
-    if (userData?.revoked) {
-      alert("Access revoked. Contact support.");
-      window.location.href = 'login.html';
-    }
-  }
-
-  protectPage();
-</script>
-
+<body>
+  <script src="auth.js"></script>
   <div class="app-container">
     <div class="title-bar">
       <h1>Crafting Calculator <span class="version-tag">v2</span></h1>
     </div>
 
     <div class="form-section">
+      <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
+        <label for="showAllToggle" style="margin-right: 1rem;">Show All Blueprints:</label>
+        <label class="switch">
+          <input type="checkbox" id="showAllToggle" />
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <!-- Category Selection -->
       <div class="form-group">
         <label for="categories">Select Category:</label>
         <select id="categories">
@@ -446,6 +442,7 @@
     🛠️ Build a Kit
   </button>
   <script src="calculator.js"></script>
+    <script type="module" src="heartbeat.js"></script>
 </body>
 
 </html>

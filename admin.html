@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Suite</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    body {
+      background-color: #121212;
+      color: #f0f0f0;
+      padding: 2rem;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: auto;
+      background: rgba(30, 30, 30, 0.9);
+      border-radius: 1rem;
+      padding: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+      position: relative;
+      transition: margin-right 0.3s ease;
+    }
+
+    .container.panel-open {
+      margin-right: 400px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: #00c6ff;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    input,
+    button,
+    select {
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      border: 1px solid #333;
+      transition: border-color 0.2s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #00c6ff;
+    }
+
+    select {
+      background-color: #2a2a2a;
+      color: #fff;
+      border: 1px solid #444;
+      cursor: pointer;
+    }
+
+    option {
+      background-color: #1f1f1f;
+      color: #fff;
+    }
+
+    button {
+      background: #00c6ff;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button:hover {
+      background: #00a9db;
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 198, 255, 0.1);
+    }
+
+    .stat-card .icon {
+      font-size: 2rem;
+      color: #00c6ff;
+    }
+
+    .stat-card .content h3 {
+      color: #00c6ff;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-card .content p {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      background: rgba(255, 255, 255, 0.01);
+      border-radius: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      text-align: left;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.03);
+      color: #00c6ff;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    tr {
+      transition: background-color 0.2s ease;
+      cursor: pointer;
+    }
+
+    tr:hover {
+      background: rgba(0, 198, 255, 0.05);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    td button {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.9rem;
+      margin-right: 0.5rem;
+    }
+
+    .revoke {
+      background-color: #ff4c4c;
+      color: #fff;
+    }
+
+    .revoke:hover {
+      background-color: #e63939;
+    }
+
+    .whitelist {
+      background-color: #a7f3d0;
+      color: #1a1a1a;
+    }
+
+    .whitelist:hover {
+      background-color: #7de0b2;
+    }
+
+    .back-button {
+      background: none;
+      color: #00c6ff;
+      border: 1px solid #00c6ff;
+      border-radius: 0.4rem;
+      padding: 0.4rem 1rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 1rem;
+      transition: all 0.2s ease;
+    }
+
+    .back-button:hover {
+      background: rgba(0, 198, 255, 0.1);
+      transform: translateX(-2px);
+    }
+
+    .loading {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top: 2px solid #00c6ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-whitelisted {
+      background: rgba(167, 243, 208, 0.2);
+      color: #a7f3d0;
+      border: 1px solid rgba(167, 243, 208, 0.3);
+    }
+
+    .status-revoked {
+      background: rgba(255, 76, 76, 0.2);
+      color: #ff4c4c;
+      border: 1px solid rgba(255, 76, 76, 0.3);
+    }
+
+    .status-trial {
+      background: rgba(255, 193, 7, 0.2);
+      color: #ffc107;
+      border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+
+    .status-online {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .status-offline {
+      background: rgba(107, 114, 128, 0.2);
+      color: #9ca3af;
+      border: 1px solid rgba(107, 114, 128, 0.3);
+    }
+
+    .admin-badge {
+      background: linear-gradient(45deg, #ffd700, #ffed4e);
+      color: #000;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-left: 0.5rem;
+    }
+
+    /* Bulk Actions */
+    .bulk-actions {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 1rem;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: none;
+    }
+
+    .bulk-actions.show {
+      display: block;
+    }
+
+    .bulk-actions h3 {
+      color: #00c6ff;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+
+    .bulk-actions .actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .bulk-btn {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      border-radius: 0.5rem;
+    }
+
+    .bulk-revoke {
+      background: #ff4c4c;
+      color: #fff;
+    }
+
+    .bulk-whitelist {
+      background: #10b981;
+      color: #fff;
+    }
+
+    .bulk-trial {
+      background: #ffc107;
+      color: #000;
+    }
+
+    /* Checkbox styling */
+    .checkbox-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .checkbox-container input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background-color: #2a2a2a;
+      border: 2px solid #888;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .checkbox-container input[type="checkbox"]:hover {
+      border-color: #4caf50;
+    }
+
+    .checkbox-container input[type="checkbox"]:checked {
+      background-color: #4caf50;
+      border-color: #4caf50;
+    }
+
+    .checkbox-container input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 6px;
+      width: 5px;
+      height: 10px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    /* Side Panel Styles */
+    .side-panel {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 400px;
+      height: 100vh;
+      background: rgba(20, 20, 20, 0.98);
+      backdrop-filter: blur(10px);
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      transition: right 0.3s ease;
+      z-index: 1000;
+      overflow-y: auto;
+      padding: 2rem;
+    }
+
+    .side-panel.open {
+      right: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .panel-header h2 {
+      color: #00c6ff;
+      font-size: 1.5rem;
+    }
+
+    .close-panel {
+      background: none;
+      color: #999;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .close-panel:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .user-info {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .user-info h3 {
+      color: #00c6ff;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      gap: 1rem;
+    }
+
+    .info-item:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      color: #999;
+      font-size: 0.9rem;
+      font-weight: 500;
+      flex-shrink: 0;
+      min-width: 120px;
+    }
+
+    .info-value {
+      color: #fff;
+      font-weight: 600;
+      text-align: right;
+      flex-grow: 1;
+    }
+
+    .action-section {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .action-section h3 {
+      color: #00c6ff;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .action-btn {
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      text-align: center;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .action-primary {
+      background: #00c6ff;
+      color: #000;
+    }
+
+    .action-danger {
+      background: #ff4c4c;
+      color: #fff;
+    }
+
+    .action-success {
+      background: #10b981;
+      color: #fff;
+    }
+
+    .action-warning {
+      background: #ffc107;
+      color: #000;
+    }
+
+    .search-highlight {
+      background: rgba(0, 198, 255, 0.3);
+      padding: 0.1rem 0.2rem;
+      border-radius: 0.2rem;
+    }
+
+    /* Audit Log Styles */
+    .audit-log {
+      max-height: 300px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 0.5rem;
+      padding: 1rem;
+    }
+
+    .audit-entry {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .audit-entry:last-child {
+      border-bottom: none;
+    }
+
+    .audit-icon {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .audit-icon.create {
+      background: #10b981;
+    }
+
+    .audit-icon.update {
+      background: #00c6ff;
+    }
+
+    .audit-icon.delete {
+      background: #ff4c4c;
+    }
+
+    .audit-icon.login {
+      background: #22c55e;
+    }
+
+    .audit-content {
+      flex-grow: 1;
+    }
+
+    .audit-action {
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .audit-details {
+      color: #999;
+      font-size: 0.8rem;
+      margin-top: 0.25rem;
+    }
+
+    .audit-time {
+      color: #666;
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+    }
+
+    /* Advanced Filters */
+    .advanced-filters {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 1rem;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: none;
+    }
+
+    .advanced-filters.show {
+      display: block;
+    }
+
+    .filter-toggle {
+      background: none;
+      color: #00c6ff;
+      border: 1px solid #00c6ff;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .filter-toggle:hover {
+      background: rgba(0, 198, 255, 0.1);
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .filter-group label {
+      color: #999;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    /* Trial badge */
+    .trial-badge {
+      background: linear-gradient(45deg, #ffc107, #ff8f00);
+      color: #000;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-left: 0.5rem;
+      white-space: nowrap;
+      display: inline-block;
+    }
+
+    /* Toast notifications */
+    .toast {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      background: rgba(20, 20, 20, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.5rem;
+      padding: 1rem 1.5rem;
+      color: #fff;
+      font-weight: 600;
+      z-index: 2000;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .toast.show {
+      transform: translateX(0);
+    }
+
+    .toast.success {
+      border-left: 4px solid #10b981;
+    }
+
+    .toast.error {
+      border-left: 4px solid #ff4c4c;
+    }
+
+    .toast.warning {
+      border-left: 4px solid #ffc107;
+    }
+
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .hamburger-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 18px;
+      width: 22px;
+    }
+
+    .hamburger-btn span {
+      display: block;
+      height: 3px;
+      background-color: #ccc;
+      margin: 2px 0;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #222;
+      border: 1px solid #444;
+      padding: 6px 10px;
+      border-radius: 6px;
+      z-index: 999;
+    }
+
+    .dropdown-content.show {
+      display: block;
+    }
+
+    .dropdown-content button {
+      display: block;
+      background: none;
+      color: #fff;
+      padding: 4px 10px;
+      text-align: left;
+      width: 100%;
+      border: none;
+      cursor: pointer;
+    }
+
+    .dropdown-content button:hover {
+      background-color: #333;
+    }
+
+    .delete-action {
+      color: #ff5555;
+    }
+
+
+    .dropdown-content button:first-child {
+      border-radius: 4px 4px 0 0;
+    }
+
+    .dropdown-content button:last-child {
+      border-radius: 0 0 4px 4px;
+    }
+
+    .dropdown-content .delete-action {
+      color: #ff4c4c;
+    }
+
+    .dropdown-content .delete-action:hover {
+      background-color: #fff5f5;
+    }
+
+    .dropdown-content .delete-action {
+      color: #ff4c4c;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        margin: 0;
+        padding: 1rem;
+        border-radius: 0;
+        background: none;
+        border: none;
+        box-shadow: none;
+      }
+
+      .container.panel-open {
+        margin-right: 0;
+      }
+
+      .side-panel {
+        width: 100vw;
+        right: -100vw;
+      }
+
+      .row {
+        flex-direction: column;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .stat-card {
+        padding: 1rem;
+      }
+
+      .stat-card .icon {
+        font-size: 1.5rem;
+      }
+
+      .stat-card .content p {
+        font-size: 1.4rem;
+      }
+
+      .table-container {
+        margin: 0 -1rem;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+      }
+
+      table {
+        font-size: 0.85rem;
+        min-width: 800px;
+      }
+
+      th,
+      td {
+        padding: 0.75rem 0.5rem;
+      }
+
+      .filter-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .bulk-actions .actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container" id="mainContainer">
+    <button onclick="history.back()" class="back-button">← Back</button>
+    <h1>Admin Dashboard</h1>
+
+    <div class="row">
+      <input type="text" id="newDiscordId" placeholder="Enter Discord ID">
+      <input type="text" id="newUsername" placeholder="Enter Username">
+      <button onclick="addUser()" id="addUserBtn">Whitelist User</button>
+    </div>
+
+    <button class="filter-toggle" onclick="toggleAdvancedFilters()">
+      <span id="filterToggleText">Show Advanced Filters</span>
+    </button>
+
+    <div class="advanced-filters" id="advancedFilters">
+      <div class="filter-grid">
+        <div class="filter-group">
+          <label>Status</label>
+          <select id="filterStatus" onchange="applyFiltersAndSort()">
+            <option value="all">All Users</option>
+            <option value="whitelisted">Whitelisted</option>
+            <option value="revoked">Revoked</option>
+            <option value="trial">On Trial</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Login Activity</label>
+          <select id="filterActivity" onchange="applyFiltersAndSort()">
+            <option value="all">All Activity</option>
+            <option value="active_24h">Active 24h</option>
+            <option value="active_7d">Active 7d</option>
+            <option value="active_30d">Active 30d</option>
+            <option value="never_logged">Never Logged In</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Account Type</label>
+          <select id="filterType" onchange="applyFiltersAndSort()">
+            <option value="all">All Types</option>
+            <option value="admin">Admins</option>
+            <option value="regular">Regular Users</option>
+            <option value="trial">Trial Users</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Date Range</label>
+          <select id="filterDateRange" onchange="applyFiltersAndSort()">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="quarter">This Quarter</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <input type="text" id="searchInput" placeholder="Search Discord ID, Username, or Email"
+        onkeyup="handleSearchInput()">
+      <select id="sortBy" onchange="applyFiltersAndSort()">
+        <option value="last_login">Sort: Last Login</option>
+        <option value="login_count">Sort: Login Count</option>
+        <option value="username">Sort: Username</option>
+        <option value="created_at">Sort: Date Added</option>
+        <option value="trial_expiration">Sort: Trial Expiration</option>
+      </select>
+      <button onclick="refreshData()" id="refreshBtn">Refresh</button>
+    </div>
+
+    <div class="bulk-actions" id="bulkActions">
+      <h3>Bulk Actions (<span id="selectedCount">0</span> selected)</h3>
+      <div class="actions">
+        <button class="bulk-btn bulk-whitelist" onclick="bulkWhitelist()">Whitelist Selected</button>
+        <button class="bulk-btn bulk-revoke" onclick="bulkRevoke()">Revoke Selected</button>
+        <button class="bulk-btn bulk-trial" onclick="bulkAddTrial()">Add 7 Day Trial</button>
+        <button class="bulk-btn" onclick="bulkDelete()" style="background: #ff4c4c; color: #fff;">Delete
+          Selected</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="icon">👥</div>
+        <div class="content">
+          <h3>Total Users</h3>
+          <p id="totalUsers">—</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">⚡</div>
+        <div class="content">
+          <h3>Online Now</h3>
+          <p id="onlineUsers">—</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">📈</div>
+        <div class="content">
+          <h3>Total Logins</h3>
+          <p id="totalLogins">—</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">🔒</div>
+        <div class="content">
+          <h3>Revoked Users</h3>
+          <p id="revokedUsers">—</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">🎯</div>
+        <div class="content">
+          <h3>Trial Users</h3>
+          <p id="trialUsers">—</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">⏰</div>
+        <div class="content">
+          <h3>Active Last 24h</h3>
+          <p id="activeUsers">—</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="usersTable">
+        <thead>
+          <tr>
+            <th>
+              <div class="select-all-container">
+                <input type="checkbox" id="selectAll" onchange="dashboard.toggleSelectAll()">
+                <span class="checkmark"></span>
+              </div>
+            </th>
+            <th>Discord ID</th>
+            <th>Username</th>
+            <th>Added</th>
+            <th>Last Login</th>
+            <th>Login Count</th>
+            <th>Status</th>
+            <th>Trial</th>
+            <th>Session</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Side Panel -->
+  <div class="side-panel" id="sidePanel">
+    <div class="panel-header">
+      <h2>User Details</h2>
+      <button class="close-panel" onclick="dashboard.closeSidePanel()">✕</button>
+    </div>
+
+    <div class="user-info" id="userInfoPanel">
+      <!-- User info will be populated here -->
+    </div>
+
+    <div class="action-section">
+      <h3>Quick Actions</h3>
+      <div class="action-buttons" id="actionButtons">
+        <!-- Action buttons will be populated here -->
+      </div>
+    </div>
+
+    <div class="action-section">
+      <h3>Audit Log</h3>
+      <div class="audit-log" id="auditLog">
+        <!-- Audit log will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    class AdminDashboard {
+      constructor() {
+        this.client = supabase.createClient(
+          'https://dsexkdjxmhgqahrlkvax.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzZXhrZGp4bWhncWFocmxrdmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0ODAxNTAsImV4cCI6MjA2NDA1NjE1MH0.RW_ROpcNUNZaK9xGH2OFwHBSmFsGrLj-yi3LWCPBCvA'
+        );
+
+        // Heartbeat System -- Updates ONLINE users in Admin Dashboard
+        setInterval(async () => {
+          const session = await this.client.auth.getSession();
+          const discordId = session?.data?.session?.user?.user_metadata?.provider_id;
+
+          if (discordId) {
+            await this.client
+              .from('users')
+              .update({ last_login: new Date().toISOString() })
+              .eq('discord_id', discordId);
+
+            // Update local online status immediately
+            this.onlineUsers.add(discordId);
+            this.sessionHeartbeats.set(discordId, Date.now());
+
+            // Refresh the table to show updated status
+            this.applyFiltersAndSort();
+          }
+        }, 2 * 60 * 1000);
+
+
+        this.adminDiscordIds = ['154388953053659137', '344637470908088322', '796587763851198474', '492053410967846933', '487476487386038292'];
+        this.allUsers = [];
+        this.filteredUsers = [];
+        this.selectedUsers = new Set();
+        this.selectedUser = null;
+        this.searchTerm = '';
+        this.isLoading = false;
+        this.realtimeSubscription = null;
+        this.auditLogs = [];
+        this.onlineUsers = new Set();
+        this.sessionHeartbeats = new Map();
+
+        this.init();
+      }
+
+      async init() {
+        try {
+          await this.loadUsers();
+          this.setupRealtimeUpdates();
+          this.setupSessionTracking();
+          this.startHeartbeatMonitoring();
+          await this.loadAuditLogs();
+          this.updateStats();
+        } catch (error) {
+          console.error('Initialization error:', error);
+          this.showToast('Failed to initialize dashboard', 'error');
+        }
+      }
+
+      // Real-time updates setup
+      setupRealtimeUpdates() {
+        this.realtimeSubscription = this.client
+          .channel('users_changes')
+          .on('postgres_changes',
+            { event: '*', schema: 'public', table: 'users' },
+            (payload) => this.handleRealtimeUpdate(payload)
+          )
+          .subscribe();
+      }
+
+      handleRealtimeUpdate(payload) {
+        console.log('Real-time update:', payload);
+
+        switch (payload.eventType) {
+          case 'INSERT':
+            this.allUsers.push(payload.new);
+            this.logAuditEvent('create', `User ${payload.new.username || payload.new.discord_id} added`, payload.new.discord_id);
+            break;
+          case 'UPDATE':
+            const index = this.allUsers.findIndex(u => u.discord_id === payload.new.discord_id);
+            if (index !== -1) {
+              this.allUsers[index] = payload.new;
+              this.logAuditEvent('update', `User ${payload.new.username || payload.new.discord_id} updated`, payload.new.discord_id);
+            }
+            break;
+          case 'DELETE':
+            this.allUsers = this.allUsers.filter(u => u.discord_id !== payload.old.discord_id);
+            this.logAuditEvent('delete', `User ${payload.old.username || payload.old.discord_id} deleted`, payload.old.discord_id);
+            break;
+        }
+
+        this.applyFiltersAndSort();
+        this.updateStats();
+      }
+
+      // Session tracking
+      setupSessionTracking() {
+        // Create sessions table for tracking online users
+        this.trackUserSessions();
+      }
+
+      async trackUserSessions() {
+        try {
+          // Get current sessions from users who logged in within the last 5 minutes
+          const { data: recentLogins } = await this.client
+            .from('users')
+            .select('discord_id, last_login, username')
+            .gte('last_login', new Date(Date.now() - 5 * 60 * 1000).toISOString()); // Last 5 minutes
+
+          if (recentLogins) {
+            // Clear existing online users first
+            this.onlineUsers.clear();
+
+            recentLogins.forEach(user => {
+              this.onlineUsers.add(user.discord_id);
+              this.sessionHeartbeats.set(user.discord_id, Date.now());
+            });
+          }
+        } catch (error) {
+          console.error('Session tracking error:', error);
+        }
+      }
+
+      startHeartbeatMonitoring() {
+        setInterval(() => {
+          const now = Date.now();
+          const timeout = 10 * 60 * 1000; // 10 minutes timeout (reduced)
+
+          for (const [userId, lastSeen] of this.sessionHeartbeats.entries()) {
+            if (now - lastSeen > timeout) {
+              this.onlineUsers.delete(userId);
+              this.sessionHeartbeats.delete(userId);
+            }
+          }
+
+          this.updateStats();
+          this.applyFiltersAndSort(); // Refresh table to show status changes
+        }, 15000); // Check every 15 seconds
+      }
+
+      // Audit logging
+      async logAuditEvent(action, description, userId = null) {
+        const auditEntry = {
+          id: Date.now(),
+          action,
+          description,
+          userId,
+          timestamp: new Date(),
+          admin: 'Current Admin' // In real app, get from auth
+        };
+
+        this.auditLogs.unshift(auditEntry);
+
+        // Keep only last 100 entries
+        if (this.auditLogs.length > 100) {
+          this.auditLogs = this.auditLogs.slice(0, 100);
+        }
+
+        // Update audit log display if panel is open
+        if (this.selectedUser) {
+          this.updateAuditLogDisplay();
+        }
+      }
+
+      async loadAuditLogs() {
+        // In a real implementation, this would load from an audit_logs table
+        this.auditLogs = [
+          {
+            id: 1,
+            action: 'login',
+            description: 'System initialized',
+            userId: null,
+            timestamp: new Date(),
+            admin: 'System'
+          }
+        ];
+      }
+
+      updateAuditLogDisplay() {
+        const auditLogContainer = document.getElementById('auditLog');
+        if (!auditLogContainer) return;
+
+        const userLogs = this.auditLogs.filter(log =>
+          !log.userId || log.userId === this.selectedUser?.discord_id
+        ).slice(0, 20);
+
+        auditLogContainer.innerHTML = userLogs.map(log => `
+          <div class="audit-entry">
+            <div class="audit-icon ${log.action}"></div>
+            <div class="audit-content">
+              <div class="audit-action">${log.description}</div>
+              <div class="audit-details">by ${log.admin}</div>
+              <div class="audit-time">${this.formatRelativeTime(log.timestamp)}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Data loading and management
+      async loadUsers() {
+        if (this.isLoading) return;
+
+        this.isLoading = true;
+        this.updateLoadingState(true);
+
+        try {
+          const { data, error } = await this.client
+            .from('users')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+
+          this.allUsers = data || [];
+          this.applyFiltersAndSort();
+          this.updateStats();
+
+        } catch (error) {
+          console.error('Error loading users:', error);
+          this.showToast('Failed to load users', 'error');
+        } finally {
+          this.isLoading = false;
+          this.updateLoadingState(false);
+        }
+      }
+
+      updateLoadingState(loading) {
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+          refreshBtn.innerHTML = loading ?
+            '<div class="loading"></div>Loading...' :
+            'Refresh';
+          refreshBtn.disabled = loading;
+        }
+      }
+
+      // User management functions
+      async addUser() {
+        const discordId = document.getElementById('newDiscordId').value.trim();
+        const username = document.getElementById('newUsername').value.trim();
+
+        if (!discordId) {
+          this.showToast('Discord ID is required', 'error');
+          return;
+        }
+
+        if (this.allUsers.some(u => u.discord_id === discordId)) {
+          this.showToast('User already exists', 'warning');
+          return;
+        }
+
+        try {
+          const { data, error } = await this.client
+            .from('users')
+            .insert([{
+              discord_id: discordId,
+              username: username || null,
+              revoked: false, // Changed from 'active' to 'whitelisted'
+              created_at: new Date().toISOString()
+            }])
+            .select();
+
+          if (error) throw error;
+
+          document.getElementById('newDiscordId').value = '';
+          document.getElementById('newUsername').value = '';
+
+          this.showToast('User whitelisted successfully', 'success');
+          this.logAuditEvent('create', `User ${username || discordId} whitelisted`, discordId);
+
+        } catch (error) {
+          console.error('Error adding user:', error);
+          this.showToast('Failed to whitelist user', 'error');
+        }
+      }
+
+      async updateUserStatus(discordId, revoked) {
+        try {
+          const { error } = await this.client
+            .from('users')
+            .update({ revoked })
+            .eq('discord_id', discordId);
+
+          if (error) throw error;
+
+          const action = revoked ? 'revoked' : 'whitelisted';
+          const user = this.allUsers.find(u => u.discord_id === discordId);
+          this.showToast(`User ${action} successfully`, 'success');
+          this.logAuditEvent('update', `User ${user?.username || discordId} ${action}`, discordId);
+
+          // 🔄 Ensure all views reflect the update instantly
+          await Promise.all([
+            this.trackUserSessions(), // Update "Online" badge state
+            this.loadUsers()          // Reload table & stats
+          ]);
+
+          // Optionally update the open side panel if user is visible
+          if (this.selectedUser?.discord_id === discordId) {
+            this.selectedUser = this.allUsers.find(u => u.discord_id === discordId);
+            this.renderUserPanel();
+          }
+
+        } catch (error) {
+          console.error('Error updating user status:', error);
+          this.showToast('Failed to update user status', 'error');
+        }
+      }
+
+
+      async updateTrialTime(discordId, days) {
+        const trialExpiration = new Date();
+        trialExpiration.setDate(trialExpiration.getDate() + days);
+
+        try {
+          const { error } = await this.client
+            .from('users')
+            .update({
+              hub_trial: true,
+              trial_expiration: trialExpiration.toISOString()
+            })
+            .eq('discord_id', discordId);
+
+          if (error) throw error;
+
+          const user = this.allUsers.find(u => u.discord_id === discordId);
+          this.showToast(`Trial extended by ${days} days`, 'success');
+          this.logAuditEvent('update', `Trial extended ${days} days for ${user?.username || discordId}`, discordId);
+
+        } catch (error) {
+          console.error('Error updating trial:', error);
+          this.showToast('Failed to update trial', 'error');
+        }
+      }
+
+      async deleteUser(discordId) {
+        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+          return;
+        }
+
+        try {
+          const { error } = await this.client
+            .from('users')
+            .delete()
+            .eq('discord_id', discordId);
+
+          if (error) throw error;
+
+          const user = this.allUsers.find(u => u.discord_id === discordId);
+          this.showToast('User deleted successfully', 'success');
+          this.logAuditEvent('delete', `User ${user?.username || discordId} deleted`, discordId);
+
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          this.showToast('Failed to delete user', 'error');
+        }
+      }
+
+      // Bulk operations
+      async bulkWhitelist() {
+        if (this.selectedUsers.size === 0) {
+          this.showToast('No users selected', 'warning');
+          return;
+        }
+
+        if (!confirm(`Whitelist ${this.selectedUsers.size} selected users?`)) {
+          return;
+        }
+
+        try {
+          const { error } = await this.client
+            .from('users')
+            .update({ revoked: false })
+            .in('discord_id', Array.from(this.selectedUsers));
+
+          if (error) throw error;
+
+          this.showToast(`${this.selectedUsers.size} users whitelisted`, 'success');
+          this.logAuditEvent('update', `Bulk whitelist of ${this.selectedUsers.size} users`);
+          this.clearSelection();
+
+        } catch (error) {
+          console.error('Bulk whitelist error:', error);
+          this.showToast('Failed to whitelist users', 'error');
+        }
+      }
+
+      async bulkRevoke() {
+        if (this.selectedUsers.size === 0) {
+          this.showToast('No users selected', 'warning');
+          return;
+        }
+
+        if (!confirm(`Revoke access for ${this.selectedUsers.size} selected users?`)) {
+          return;
+        }
+
+        try {
+          const { error } = await this.client
+            .from('users')
+            .update({ revoked: true })
+            .in('discord_id', Array.from(this.selectedUsers));
+
+          if (error) throw error;
+
+          this.showToast(`${this.selectedUsers.size} users revoked`, 'success');
+          this.logAuditEvent('update', `Bulk revoke of ${this.selectedUsers.size} users`);
+          this.clearSelection();
+
+        } catch (error) {
+          console.error('Bulk revoke error:', error);
+          this.showToast('Failed to revoke users', 'error');
+        }
+      }
+
+      async bulkAddTrial() {
+        if (this.selectedUsers.size === 0) {
+          this.showToast('No users selected', 'warning');
+          return;
+        }
+
+        if (!confirm(`Add 7-day trial to ${this.selectedUsers.size} selected users?`)) {
+          return;
+        }
+
+        const trialExpiration = new Date();
+        trialExpiration.setDate(trialExpiration.getDate() + 7);
+
+        try {
+          const { error } = await this.client
+            .from('users')
+            .update({
+              hub_trial: true,
+              trial_expiration: trialExpiration.toISOString()
+            })
+            .in('discord_id', Array.from(this.selectedUsers));
+
+          if (error) throw error;
+
+          this.showToast(`7-day trial added for ${this.selectedUsers.size} users`, 'success');
+          this.logAuditEvent('update', `Bulk trial assignment for ${this.selectedUsers.size} users`);
+          this.clearSelection();
+
+        } catch (error) {
+          console.error('Bulk trial error:', error);
+          this.showToast('Failed to add trials', 'error');
+        }
+      }
+
+      async bulkDelete() {
+        if (this.selectedUsers.size === 0) {
+          this.showToast('No users selected', 'warning');
+          return;
+        }
+
+        if (!confirm(`DELETE ${this.selectedUsers.size} selected users? This action cannot be undone!`)) {
+          return;
+        }
+
+        try {
+          const { error } = await this.client
+            .from('users')
+            .delete()
+            .in('discord_id', Array.from(this.selectedUsers));
+
+          if (error) throw error;
+
+          this.showToast(`${this.selectedUsers.size} users deleted`, 'success');
+          this.logAuditEvent('delete', `Bulk delete of ${this.selectedUsers.size} users`);
+          this.clearSelection();
+
+        } catch (error) {
+          console.error('Bulk delete error:', error);
+          this.showToast('Failed to delete users', 'error');
+        }
+      }
+
+      clearSelection() {
+        this.selectedUsers.clear();
+        document.getElementById('selectAll').checked = false;
+        document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = false);
+        this.updateBulkActions();
+      }
+
+      updateBulkActions() {
+        const bulkActions = document.getElementById('bulkActions');
+        const selectedCount = document.getElementById('selectedCount');
+
+        if (selectedCount) {
+          selectedCount.textContent = this.selectedUsers.size;
+        }
+
+        if (bulkActions) {
+          bulkActions.classList.toggle('show', this.selectedUsers.size > 0);
+        }
+      }
+
+      // Filtering and sorting
+      applyFiltersAndSort() {
+        let filtered = [...this.allUsers];
+
+        // Apply search filter
+        if (this.searchTerm) {
+          const term = this.searchTerm.toLowerCase();
+          filtered = filtered.filter(user =>
+            user.discord_id.toLowerCase().includes(term) ||
+            (user.username && user.username.toLowerCase().includes(term))
+          );
+        }
+
+        // Apply status filter
+        const statusFilter = document.getElementById('filterStatus')?.value;
+        if (statusFilter && statusFilter !== 'all') {
+          switch (statusFilter) {
+            case 'whitelisted':
+              filtered = filtered.filter(user => !user.revoked);
+              break;
+            case 'revoked':
+              filtered = filtered.filter(user => user.revoked);
+              break;
+            case 'trial':
+              filtered = filtered.filter(user => user.hub_trial &&
+                user.trial_expiration && new Date(user.trial_expiration) > new Date());
+              break;
+          }
+        }
+
+        // Apply activity filter
+        const activityFilter = document.getElementById('filterActivity')?.value;
+        if (activityFilter && activityFilter !== 'all') {
+          const now = new Date();
+          switch (activityFilter) {
+            case 'active_24h':
+              filtered = filtered.filter(user =>
+                user.last_login && new Date(user.last_login) > new Date(now - 24 * 60 * 60 * 1000));
+              break;
+            case 'active_7d':
+              filtered = filtered.filter(user =>
+                user.last_login && new Date(user.last_login) > new Date(now - 7 * 24 * 60 * 60 * 1000));
+              break;
+            case 'active_30d':
+              filtered = filtered.filter(user =>
+                user.last_login && new Date(user.last_login) > new Date(now - 30 * 24 * 60 * 60 * 1000));
+              break;
+            case 'never_logged':
+              filtered = filtered.filter(user => !user.last_login);
+              break;
+          }
+        }
+
+        // Apply type filter
+        const typeFilter = document.getElementById('filterType')?.value;
+        if (typeFilter && typeFilter !== 'all') {
+          switch (typeFilter) {
+            case 'admin':
+              filtered = filtered.filter(user => this.adminDiscordIds.includes(user.discord_id));
+              break;
+            case 'regular':
+              filtered = filtered.filter(user =>
+                !this.adminDiscordIds.includes(user.discord_id) && !user.hub_trial);
+              break;
+            case 'trial':
+              filtered = filtered.filter(user => user.hub_trial);
+              break;
+          }
+        }
+
+        // Apply date range filter
+        const dateFilter = document.getElementById('filterDateRange')?.value;
+        if (dateFilter && dateFilter !== 'all') {
+          const now = new Date();
+          let startDate;
+
+          switch (dateFilter) {
+            case 'today':
+              startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              break;
+            case 'week':
+              startDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
+              break;
+            case 'month':
+              startDate = new Date(now - 30 * 24 * 60 * 60 * 1000);
+              break;
+            case 'quarter':
+              startDate = new Date(now - 90 * 24 * 60 * 60 * 1000);
+              break;
+          }
+
+          if (startDate) {
+            filtered = filtered.filter(user =>
+              user.created_at && new Date(user.created_at) >= startDate);
+          }
+        }
+
+        // Apply sorting
+        const sortBy = document.getElementById('sortBy')?.value || 'last_login';
+        filtered.sort((a, b) => {
+          switch (sortBy) {
+            case 'username':
+              return (a.username || '').localeCompare(b.username || '');
+            case 'login_count':
+              return (b.login_count || 0) - (a.login_count || 0);
+            case 'created_at':
+              return new Date(b.created_at) - new Date(a.created_at);
+            case 'trial_expiration':
+              const aExp = a.trial_expiration ? new Date(a.trial_expiration) : new Date(0);
+              const bExp = b.trial_expiration ? new Date(b.trial_expiration) : new Date(0);
+              return bExp - aExp;
+            default: // last_login
+              const aLogin = a.last_login ? new Date(a.last_login) : new Date(0);
+              const bLogin = b.last_login ? new Date(b.last_login) : new Date(0);
+              return bLogin - aLogin;
+          }
+        });
+
+        this.filteredUsers = filtered;
+        this.renderTable();
+      }
+
+      // Table rendering
+      renderTable() {
+        const tbody = document.querySelector('#usersTable tbody');
+        if (!tbody) return;
+
+        tbody.innerHTML = this.filteredUsers.map(user => `
+          <tr data-user-id="${user.discord_id}" onclick="dashboard.openUserPanel('${user.discord_id}')">
+  <td onclick="event.stopPropagation();">
+  <input
+    type="checkbox"
+    class="user-checkbox"
+    onchange="event.stopPropagation(); dashboard.toggleUserSelection('${user.discord_id}')"
+    ${this.selectedUsers.has(user.discord_id) ? 'checked' : ''}>
+</td>
+  <td>
+    ${this.highlightSearchTerm(user.discord_id)}
+    ${this.adminDiscordIds.includes(user.discord_id) ? '<span class="admin-badge">ADMIN</span>' : ''}
+  </td>
+            <td>${this.highlightSearchTerm(user.username || 'N/A')}</td>
+            <td>${this.formatDate(user.created_at)}</td>
+            <td>${user.last_login ? this.formatDate(user.last_login) : 'Never'}</td>
+            <td>${user.login_count || 0}</td>
+            <td>
+              <span class="status-badge status-${user.revoked ? 'revoked' : 'whitelisted'}">
+                ${user.revoked ? 'REVOKED' : 'ACCESS'}
+              </span>
+            </td>
+            <td>
+              ${this.getTrialStatus(user)}
+            </td>
+            <td>
+              <span class="status-badge status-${this.onlineUsers.has(user.discord_id) ? 'online' : 'offline'}">
+                ${this.onlineUsers.has(user.discord_id) ? 'ONLINE' : 'OFFLINE'}
+              </span>
+            </td>
+            <td onclick="event.stopPropagation()">
+              ${this.renderActionButtons(user)}
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      getTrialStatus(user) {
+        if (!user.hub_trial) return 'N/A';
+
+        if (!user.trial_expiration) {
+          return '<span class="trial-badge">TRIAL</span>';
+        }
+
+        const expiration = new Date(user.trial_expiration);
+        const now = new Date();
+
+        if (expiration > now) {
+          const daysLeft = Math.ceil((expiration - now) / (1000 * 60 * 60 * 24));
+          return `<span class="trial-badge" title="Trial expires in ${daysLeft} days">TRIAL&nbsp;(${daysLeft}d)</span>`;
+        } else {
+          return '<span class="status-badge status-revoked">EXPIRED</span>';
+        }
+      }
+
+      renderActionButtons(user) {
+        return `
+    <div class="dropdown">
+      <button class="hamburger-icon" onclick="event.stopPropagation(); toggleDropdown(this)">
+        ☰
+      </button>
+      <div class="dropdown-content">
+        <button onclick="event.stopPropagation(); dashboard.updateUserStatus('${user.discord_id}', ${!user.revoked})">
+          ${user.revoked ? 'Whitelist' : 'Revoke'}
+        </button>
+        <button onclick="event.stopPropagation(); dashboard.deleteUser('${user.discord_id}')" class="delete-action">
+          Delete
+        </button>
+      </div>
+    </div>
+  `;
+      }
+
+
+      highlightSearchTerm(text) {
+        if (!this.searchTerm || !text) return text;
+        const regex = new RegExp(`(${this.searchTerm})`, 'gi');
+        return text.replace(regex, '<span class="search-highlight">$1</span>');
+      }
+
+      // User panel
+      openUserPanel(discordId) {
+        this.selectedUser = this.allUsers.find(u => u.discord_id === discordId);
+        if (!this.selectedUser) return;
+
+        this.renderUserPanel();
+        document.getElementById('sidePanel').classList.add('open');
+        document.getElementById('mainContainer').classList.add('panel-open');
+      }
+
+      closeSidePanel() {
+        document.getElementById('sidePanel').classList.remove('open');
+        document.getElementById('mainContainer').classList.remove('panel-open');
+        this.selectedUser = null;
+      }
+
+      renderUserPanel() {
+        if (!this.selectedUser) return;
+
+        const user = this.selectedUser;
+        const userInfoPanel = document.getElementById('userInfoPanel');
+        const actionButtons = document.getElementById('actionButtons');
+
+        // User info with better spacing
+        userInfoPanel.innerHTML = `
+          <h3>User Information</h3>
+          <div class="info-item">
+            <span class="info-label">Discord ID:</span>
+            <span class="info-value">${user.discord_id}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Username:</span>
+            <span class="info-value">${user.username || 'N/A'}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Status:</span>
+            <span class="info-value">
+              <span class="status-badge status-${user.revoked ? 'revoked' : 'whitelisted'}">
+                ${user.revoked ? 'REVOKED' : 'ACCESS'}
+              </span>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Account Type:</span>
+            <span class="info-value">
+              ${this.adminDiscordIds.includes(user.discord_id) ?
+            '<span class="admin-badge">ADMIN</span>' : 'Regular User'}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Created:</span>
+            <span class="info-value">${this.formatDate(user.created_at)}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Last Login:</span>
+            <span class="info-value">${user.last_login ? this.formatDate(user.last_login) : 'Never'}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Login Count:</span>
+            <span class="info-value">${user.login_count || 0}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Trial Status:</span>
+            <span class="info-value">${this.getTrialStatus(user)}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Session:</span>
+            <span class="info-value">
+              <span class="status-badge status-${this.onlineUsers.has(user.discord_id) ? 'online' : 'offline'}">
+                ${this.onlineUsers.has(user.discord_id) ? 'ONLINE' : 'OFFLINE'}
+              </span>
+            </span>
+          </div>
+        `;
+
+        // Action buttons
+        actionButtons.innerHTML = `
+          <button class="action-btn action-${user.revoked ? 'success' : 'danger'}" 
+                  onclick="dashboard.updateUserStatus('${user.discord_id}', ${!user.revoked})">
+            ${user.revoked ? 'Whitelist User' : 'Revoke Access'}
+          </button>
+          <button class="action-btn action-warning" 
+                  onclick="dashboard.updateTrialTime('${user.discord_id}', 7)">
+            Add 7 Day Trial
+          </button>
+          <button class="action-btn action-warning" 
+                  onclick="dashboard.updateTrialTime('${user.discord_id}', 30)">
+            Add 30 Day Trial
+          </button>
+          <button class="action-btn action-primary" 
+                  onclick="dashboard.promptCustomTrial('${user.discord_id}')">
+            Custom Trial Duration
+          </button>
+          <button class="action-btn action-danger" 
+                  onclick="dashboard.deleteUser('${user.discord_id}')">
+            Delete User
+          </button>
+        `;
+
+        this.updateAuditLogDisplay();
+      }
+
+      promptCustomTrial(discordId) {
+        const days = prompt('Enter number of days for trial:');
+        if (days && !isNaN(days) && parseInt(days) > 0) {
+          this.updateTrialTime(discordId, parseInt(days));
+        }
+      }
+
+      // Selection management
+      toggleUserSelection(discordId) {
+        if (this.selectedUsers.has(discordId)) {
+          this.selectedUsers.delete(discordId);
+        } else {
+          this.selectedUsers.add(discordId);
+        }
+        this.updateBulkActions();
+        this.updateSelectAllCheckbox();
+      }
+
+      toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.user-checkbox');
+
+        if (selectAll.checked) {
+          this.filteredUsers.forEach(user => {
+            this.selectedUsers.add(user.discord_id);
+          });
+          checkboxes.forEach(cb => cb.checked = true);
+        } else {
+          this.selectedUsers.clear();
+          checkboxes.forEach(cb => cb.checked = false);
+        }
+        this.updateBulkActions();
+      }
+
+      updateSelectAllCheckbox() {
+        const selectAll = document.getElementById('selectAll');
+        if (!selectAll) return;
+
+        const visibleUsers = this.filteredUsers.length;
+        const selectedVisibleUsers = this.filteredUsers.filter(user =>
+          this.selectedUsers.has(user.discord_id)
+        ).length;
+
+        selectAll.checked = visibleUsers > 0 && selectedVisibleUsers === visibleUsers;
+        selectAll.indeterminate = selectedVisibleUsers > 0 && selectedVisibleUsers < visibleUsers;
+      }
+
+      // Statistics and updates
+      updateStats() {
+        const totalUsers = this.allUsers.length;
+        const whitelistedUsers = this.allUsers.filter(u => !u.revoked).length;
+        const revokedUsers = this.allUsers.filter(u => u.revoked).length;
+        const trialUsers = this.allUsers.filter(u =>
+          u.hub_trial && u.trial_expiration && new Date(u.trial_expiration) > new Date()
+        ).length;
+        const onlineCount = this.onlineUsers.size;
+        const totalLogins = this.allUsers.reduce((sum, u) => sum + (u.login_count || 0), 0);
+        const activeUsers = this.allUsers.filter(u => this.isUserActive(u, '24h')).length;
+
+
+        // Update dashboard stats
+        // Update dashboard stats
+        this.updateStatElement('totalUsers', totalUsers);
+        this.updateStatElement('whitelistedUsers', whitelistedUsers);
+        this.updateStatElement('revokedUsers', revokedUsers);
+        this.updateStatElement('trialUsers', trialUsers);
+        this.updateStatElement('onlineUsers', onlineCount);
+        this.updateStatElement('totalLogins', totalLogins);
+        this.updateStatElement('activeUsers', activeUsers);
+
+
+        // Update table info
+        const filteredCount = this.filteredUsers.length;
+        const tableInfo = document.getElementById('tableInfo');
+        if (tableInfo) {
+          tableInfo.textContent = `Showing ${filteredCount} of ${totalUsers} users`;
+        }
+      }
+
+      updateStatElement(id, value) {
+        const element = document.getElementById(id);
+        if (element) {
+          element.textContent = value;
+        }
+      }
+
+      // Search functionality
+      setupSearch() {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+          let searchTimeout;
+          searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+              this.searchTerm = e.target.value.trim();
+              this.applyFiltersAndSort();
+            }, 300);
+          });
+        }
+      }
+
+      // Event handlers setup
+      setupEventHandlers() {
+        // Search setup
+        this.setupSearch();
+
+        // Filter change handlers
+        const filterElements = [
+          'filterStatus', 'filterActivity', 'filterType', 'filterDateRange', 'sortBy'
+        ];
+
+        filterElements.forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            element.addEventListener('change', () => this.applyFiltersAndSort());
+          }
+        });
+
+        // Refresh button
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', () => this.loadUsers());
+        }
+
+        // Add user form
+        const addUserForm = document.getElementById('addUserForm');
+        if (addUserForm) {
+          addUserForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.addUser();
+          });
+        }
+
+        // Select all checkbox
+        const selectAll = document.getElementById('selectAll');
+        if (selectAll) {
+          selectAll.addEventListener('change', () => this.toggleSelectAll());
+        }
+
+        // Bulk action buttons
+        const bulkButtons = {
+          'bulkWhitelistBtn': () => this.bulkWhitelist(),
+          'bulkRevokeBtn': () => this.bulkRevoke(),
+          'bulkTrialBtn': () => this.bulkAddTrial(),
+          'bulkDeleteBtn': () => this.bulkDelete()
+        };
+
+        Object.entries(bulkButtons).forEach(([id, handler]) => {
+          const button = document.getElementById(id);
+          if (button) {
+            button.addEventListener('click', handler);
+          }
+        });
+
+        // Side panel close
+        const closePanelBtn = document.getElementById('closePanelBtn');
+        if (closePanelBtn) {
+          closePanelBtn.addEventListener('click', () => this.closeSidePanel());
+        }
+
+        // ESC key to close panel
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            this.closeSidePanel();
+          }
+        });
+
+        // Clear filters button
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        if (clearFiltersBtn) {
+          clearFiltersBtn.addEventListener('click', () => this.clearFilters());
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest('.dropdown')) {
+            document.querySelectorAll('.dropdown-content.show').forEach(dropdown => {
+              dropdown.classList.remove('show');
+            });
+          }
+        });
+      }
+      clearFilters() {
+        // Reset all filter selects
+        const filterSelects = ['filterStatus', 'filterActivity', 'filterType', 'filterDateRange'];
+        filterSelects.forEach(id => {
+          const element = document.getElementById(id);
+          if (element) element.value = 'all';
+        });
+
+        // Reset search
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+          searchInput.value = '';
+          this.searchTerm = '';
+        }
+
+        // Reset sort
+        const sortBy = document.getElementById('sortBy');
+        if (sortBy) sortBy.value = 'last_login';
+
+        this.applyFiltersAndSort();
+      }
+
+      // Export functionality
+      exportUsers(format = 'csv') {
+        if (this.filteredUsers.length === 0) {
+          this.showToast('No users to export', 'warning');
+          return;
+        }
+
+        const data = this.filteredUsers.map(user => ({
+          discord_id: user.discord_id,
+          username: user.username || '',
+          status: user.revoked ? 'REVOKED' : 'WHITELISTED',
+          created_at: user.created_at,
+          last_login: user.last_login || '',
+          login_count: user.login_count || 0,
+          trial_status: user.hub_trial ? 'TRIAL' : 'REGULAR',
+          trial_expiration: user.trial_expiration || '',
+          is_admin: this.adminDiscordIds.includes(user.discord_id) ? 'YES' : 'NO'
+        }));
+
+        if (format === 'csv') {
+          this.exportToCSV(data);
+        } else if (format === 'json') {
+          this.exportToJSON(data);
+        }
+      }
+
+      exportToCSV(data) {
+        const headers = Object.keys(data[0]);
+        const csvContent = [
+          headers.join(','),
+          ...data.map(row => headers.map(header =>
+            `"${String(row[header]).replace(/"/g, '""')}"`
+          ).join(','))
+        ].join('\n');
+
+        this.downloadFile(csvContent, 'users_export.csv', 'text/csv');
+      }
+
+      exportToJSON(data) {
+        const jsonContent = JSON.stringify(data, null, 2);
+        this.downloadFile(jsonContent, 'users_export.json', 'application/json');
+      }
+
+      downloadFile(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        this.showToast(`Exported ${filename}`, 'success');
+      }
+
+      // Utility functions
+      formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+
+      formatRelativeTime(date) {
+        const now = new Date();
+        const diffMs = now - new Date(date);
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+
+        return this.formatDate(date);
+      }
+
+      showToast(message, type = 'info') {
+        // Create toast element if it doesn't exist
+        let toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) {
+          toastContainer = document.createElement('div');
+          toastContainer.id = 'toastContainer';
+          toastContainer.className = 'toast-container';
+          document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+          <div class="toast-content">
+            <span class="toast-icon">${this.getToastIcon(type)}</span>
+            <span class="toast-message">${message}</span>
+          </div>
+          <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+        `;
+
+        toastContainer.appendChild(toast);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+          if (toast.parentElement) {
+            toast.remove();
+          }
+        }, 5000);
+      }
+
+      getToastIcon(type) {
+        const icons = {
+          success: '✓',
+          error: '✗',
+          warning: '⚠',
+          info: 'ℹ'
+        };
+        return icons[type] || icons.info;
+      }
+
+      // Advanced filtering helper
+      isUserActive(user, period) {
+        if (!user.last_login) return false;
+
+        const loginDate = new Date(user.last_login);
+        const now = new Date();
+        const diffHours = (now - loginDate) / (1000 * 60 * 60);
+
+        switch (period) {
+          case '1h': return diffHours <= 1;
+          case '24h': return diffHours <= 24;
+          case '7d': return diffHours <= 168; // 7 * 24
+          case '30d': return diffHours <= 720; // 30 * 24
+          default: return false;
+        }
+      }
+
+      // Cleanup
+      cleanup() {
+        if (this.realtimeSubscription) {
+          this.realtimeSubscription.unsubscribe();
+        }
+
+        // Clear any intervals
+        if (this.heartbeatInterval) {
+          clearInterval(this.heartbeatInterval);
+        }
+      }
+    }
+
+    function toggleDropdown(button) {
+      // Close all open dropdowns first
+      document.querySelectorAll('.dropdown-content.show').forEach(el => {
+        if (el !== button.nextElementSibling) {
+          el.classList.remove('show');
+          el.previousElementSibling.textContent = '☰';
+        }
+      });
+
+      const menu = button.nextElementSibling;
+      menu.classList.toggle('show');
+
+      // Toggle icon
+      button.textContent = menu.classList.contains('show') ? '✖' : '☰';
+    }
+
+    // Initialize dashboard when DOM is loaded
+    let dashboard;
+
+    // Toggle Advanced Filters panel
+    function toggleAdvancedFilters() {
+      const filters = document.getElementById('advancedFilters');
+      const toggleText = document.getElementById('filterToggleText');
+      filters.classList.toggle('show');
+      toggleText.textContent = filters.classList.contains('show')
+        ? 'Hide Advanced Filters'
+        : 'Show Advanced Filters';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      dashboard = new AdminDashboard();
+      dashboard.setupEventHandlers();
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (dashboard) {
+        dashboard.cleanup();
+      }
+    });
+  </script>

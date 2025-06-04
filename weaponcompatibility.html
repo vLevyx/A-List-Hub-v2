@@ -2,230 +2,781 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Weapon Compatibility Viewer</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weapon Compatibility</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Outfit', sans-serif;
         }
 
         body {
-            background-color: #121212;
-            color: #f0f0f0;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            line-height: 1.6;
             min-height: 100vh;
-            padding: 2rem;
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1400px;
             margin: 0 auto;
-            background: rgba(30, 30, 30, 0.8);
-            border-radius: 1rem;
-            padding: 2rem;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
+            padding: 20px;
         }
 
-        h1 {
+        .header {
             text-align: center;
-            font-size: 2rem;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
             color: #00c6ff;
-            margin-bottom: 1.5rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
         }
 
-        .form-group label,
-        .attachment-filter-toggle label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
+        .header p {
+            color: #888;
+            font-size: 1.1rem;
         }
 
-        .form-group input[type="text"] {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #444;
-            border-radius: 0.5rem;
-            background: #1e1e1e;
-            color: #f0f0f0;
+        .controls {
+            display: grid;
+            gap: 25px;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #111;
+            border-radius: 12px;
+            border: 1px solid #333;
         }
 
-        .attachment-filter-toggle {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background: rgba(40, 40, 40, 0.9);
-            border-radius: 0.75rem;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .checkbox-group {
+        .search-section {
             display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            justify-content: center;
-            margin-top: 0.5rem;
+            flex-direction: column;
+            gap: 10px;
         }
 
-        .checkbox-label {
-            background: #1e1e1e;
-            color: #f0f0f0;
-            padding: 0.5rem 1rem;
-            border: 1px solid #444;
-            border-radius: 0.5rem;
+        .search-label {
+            color: #00c6ff;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .search-input {
+            padding: 12px 16px;
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #00c6ff;
+            box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.1);
+        }
+
+        .filter-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .section-title {
+            color: #00c6ff;
+            font-weight: 600;
+            font-size: 1rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
+            gap: 8px;
         }
 
-        .button-group {
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: #00c6ff;
+            border-radius: 2px;
+        }
+
+        .filter-buttons {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.75rem;
-            margin-top: 1.5rem;
-            justify-content: center;
+            gap: 10px;
         }
 
-        .filter-button,
-        .view-toggle {
-            padding: 0.6rem 1rem;
-            background: transparent;
-            border: 2px solid transparent;
-            border-image: linear-gradient(135deg, #00c6ff, #0072ff);
-            border-image-slice: 1;
-            border-radius: 9999px;
-            color: #fff;
-            font-weight: 600;
+        .filter-button {
+            padding: 8px 16px;
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 20px;
+            color: #e0e0e0;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
         }
 
-        .filter-button:hover,
-        .view-toggle:hover {
-            transform: scale(1.05);
+        .filter-button:hover {
+            border-color: #00c6ff;
+            background: rgba(0, 198, 255, 0.1);
         }
 
-        .filter-button.selected,
-        .view-toggle.selected {
-            background: linear-gradient(135deg, #00c6ff, #0072ff);
-            color: #fff;
+        .filter-button.selected {
+            background: #00c6ff;
+            color: #000;
+            border-color: #00c6ff;
+        }
+
+        /* Fire Selector Styles */
+        .fire-selector-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            padding: 10px 0 0 0;
+        }
+
+
+        .fire-selector {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, #2a2a2a 0%, #1a1a1a 70%);
+            border-radius: 50%;
+            border: 3px solid #333;
+            box-shadow:
+                inset 0 0 20px rgba(0, 0, 0, 0.5),
+                0 4px 15px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .fire-selector::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #333 0%, #222 100%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+        }
+
+        .selector-pointer {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            width: 4px;
+            height: 25px;
+            background: linear-gradient(to bottom, #ff4444, #cc0000);
+            transform: translateX(-50%);
+            transform-origin: center 50px;
+            border-radius: 2px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10;
+        }
+
+        .selector-label {
+            position: absolute;
+            font-size: 11px;
+            font-weight: 700;
+            color: #e0e0e0;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+        }
+
+        .selector-label.safe {
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #e0e0e0;
+        }
+
+        .selector-label.semi {
+            top: 50%;
+            right: 6px;
+            transform: translateY(-50%);
+            color: #4ade80;
+        }
+
+        .selector-label.burst {
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fbbf24;
+        }
+
+        .selector-label.full {
+            top: 50%;
+            left: 6px;
+            transform: translateY(-50%);
+            color: #f87171;
+        }
+
+        .selector-center-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            background: #444;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.8);
+        }
+
+        .fire-mode-display {
+            text-align: center;
+            padding: 15px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            border: 2px solid #333;
+            min-width: 120px;
+        }
+
+        .current-mode {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .mode-safe {
+            color: #e0e0e0;
+        }
+
+        .mode-semi {
+            color: #4ade80;
+        }
+
+        .mode-burst {
+            color: #fbbf24;
+        }
+
+        .mode-full {
+            color: #f87171;
+        }
+
+        .mode-description {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .view-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .view-buttons {
+            display: flex;
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 4px;
+            border: 1px solid #333;
+        }
+
+        .view-toggle {
+            flex: 1;
+            padding: 10px 16px;
+            background: transparent;
             border: none;
+            color: #e0e0e0;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .view-toggle:hover {
+            background: rgba(0, 198, 255, 0.1);
+        }
+
+        .view-toggle.active {
+            background: #00c6ff;
+            color: #000;
+        }
+
+        .attachment-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 6px 0;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #333;
+            border-radius: 4px;
+            background: #1a1a1a;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item input[type="checkbox"]:checked {
+            background: #00c6ff;
+            border-color: #00c6ff;
+        }
+
+        .checkbox-item input[type="checkbox"]:checked::before {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #000;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .checkbox-item label {
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .table-container {
+            background: #111;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #333;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
         }
 
         table {
             width: 100%;
-            margin-top: 2rem;
             border-collapse: collapse;
-            background-color: #1c1c1c;
-            overflow-x: auto;
         }
 
-        th,
-        td {
-            padding: 0.75rem;
-            border: 1px solid #333;
-            text-align: left;
+        thead {
+            background: #1a1a1a;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         th {
-            background: #232323;
-            cursor: pointer;
+            padding: 16px 20px;
+            text-align: left;
+            color: #00c6ff;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border-bottom: 2px solid #333;
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #222;
+        }
+
+        tbody tr:hover {
+            background: rgba(0, 198, 255, 0.05);
+        }
+
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        td {
+            padding: 16px 20px;
+            font-size: 0.9rem;
+            vertical-align: top;
+        }
+
+        .weapon-name {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .ammo-info {
+            color: #ccc;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        .fire-modes {
+            font-weight: 500;
+        }
+
+        .fire-mode-semi {
+            color: #4ade80;
+        }
+
+        .fire-mode-burst {
+            color: #fbbf24;
+        }
+
+        .fire-mode-full {
+            color: #f87171;
+        }
+
+        .fire-mode-auto {
+            color: #f87171;
+        }
+
+        .attachments {
+            color: #fff;
+            font-size: 0.85rem;
+            max-width: 200px;
+            word-wrap: break-word;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #111;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
             color: #00c6ff;
         }
 
-        tr:nth-child(even) {
-            background: #181818;
+        .stat-label {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 4px;
         }
 
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+            font-size: 1.1rem;
+        }
+
+        /* Mobile Responsiveness */
         @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-            }
-
             .container {
-                max-width: 100%;
-                margin: 0;
-                padding: 0;
-                background: none;
-                box-shadow: none;
-                backdrop-filter: none;
+                padding: 15px;
             }
 
-            table {
-                font-size: 0.9rem;
-                display: block;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
+            .header h1 {
+                font-size: 2rem;
             }
+
+            .controls {
+                padding: 20px;
+                gap: 20px;
+            }
+
+            .fire-selector {
+                width: 100px;
+                height: 100px;
+            }
+
+
+
+            .fire-selector::before {
+                width: 65px;
+                height: 65px;
+            }
+
+            .selector-pointer {
+                height: 20px;
+                transform-origin: center 40px;
+            }
+
+            .filter-buttons {
+                gap: 8px;
+            }
+
+            .filter-button {
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+
+            .view-buttons {
+                flex-direction: column;
+            }
+
+            .view-toggle {
+                padding: 12px 16px;
+            }
+
+            .attachment-filters {
+                gap: 8px;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            th,
+            td {
+                padding: 12px 16px;
+                font-size: 0.85rem;
+            }
+
+            .attachments {
+                max-width: 150px;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .filter-button {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+
+            th,
+            td {
+                padding: 10px 12px;
+                font-size: 0.8rem;
+            }
+
+            .table-wrapper {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        tbody tr {
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* Scrollbar styling */
+        .table-wrapper::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border-radius: 4px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: #00c6ff;
+            border-radius: 4px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #33d1ff;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>Weapon Compatibility Viewer</h1>
-
-        <div class="form-group">
-            <label for="search">Search by Weapon, Ammo, or Attachment:</label>
-            <input type="text" id="search" placeholder="Type here..." />
+        <div class="header">
+            <h1>Weapon Compatibility Viewer</h1>
+            <p>Comprehensive firearm specifications and attachment compatibility</p>
         </div>
 
-        <div class="attachment-filter-toggle">
-            <label>Filter by Attachments:</label>
-            <div class="checkbox-group">
-                <label class="checkbox-label"><input type="checkbox" class="attachment-checkbox" value="All" checked>
-                    All Attachments</label>
-                <label class="checkbox-label"><input type="checkbox" class="attachment-checkbox" value="Red Dot"> Red
-                    Dot</label>
-                <label class="checkbox-label"><input type="checkbox" class="attachment-checkbox" value="Reflex">
-                    Reflex</label>
-                <label class="checkbox-label"><input type="checkbox" class="attachment-checkbox" value="EOTECH">
-                    EOTECH</label>
-                <label class="checkbox-label"><input type="checkbox" class="attachment-checkbox" value="Elcan">
-                    Elcan</label>
-                <label class="checkbox-label"><input type="checkbox" class="attachment-checkbox" value="ART"> ART
-                    Scope</label>
-                <label class="checkbox-label"><input type="checkbox" class="attachment-checkbox" value="PSO-1"> PSO-1
-                    Scope</label>
-                <label class="checkbox-label"><input type="checkbox" class="attachment-checkbox" value="Carry Handle">
-                    Carry Handle</label>
-                <label class="checkbox-label"><input type="checkbox" class="attachment-checkbox" value="None">
-                    None</label>
+        <div class="controls">
+            <div class="search-section">
+                <label class="search-label" for="search">Search Weapons</label>
+                <input type="text" id="search" class="search-input"
+                    placeholder="Search by weapon name, ammo type, or attachments...">
+            </div>
+
+            <div class="filter-section">
+                <div class="section-title">Weapon Categories</div>
+                <div class="filter-buttons">
+                    <button class="filter-button" data-type="pistol">Pistols</button>
+                    <button class="filter-button" data-type="shotgun">Shotguns</button>
+                    <button class="filter-button" data-type="submachine">SMGs</button>
+                    <button class="filter-button" data-type="assault">Assault Rifles</button>
+                    <button class="filter-button" data-type="sniper">Sniper Rifles</button>
+                    <button class="filter-button" data-type="machine-gun">Machine Guns</button>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <div class="section-title">Fire Mode Selector</div>
+                <div class="fire-selector-container">
+                    <div class="fire-selector" id="fireSelector">
+                        <div class="selector-pointer" id="selectorPointer"></div>
+                        <div class="selector-label safe">SAFE</div>
+                        <div class="selector-label semi">SEMI</div>
+                        <div class="selector-label burst">BURST</div>
+                        <div class="selector-label full">FULL</div>
+                        <div class="selector-center-dot"></div>
+                    </div>
+                    <div class="fire-mode-display">
+                        <div class="current-mode mode-safe" id="currentMode">SAFE</div>
+                        <div class="mode-description" id="modeDescription">All weapons shown</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="view-section">
+                <div class="section-title">Display Options</div>
+                <div class="view-buttons">
+                    <button class="view-toggle active" data-view="all">All Info</button>
+                    <button class="view-toggle" data-view="ammo">Hide Ammo</button>
+                    <button class="view-toggle" data-view="attachments">Hide Attachments</button>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <div class="section-title">Attachment Filters</div>
+                <div class="attachment-filters">
+                    <!-- General -->
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="all-attachments" class="attachment-checkbox" value="all" checked>
+                        <label for="all-attachments">All Attachments</label>
+                    </div>
+
+                    <!-- Optics / Sights -->
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="red-dot" class="attachment-checkbox" value="red dot">
+                        <label for="red-dot">Red Dot</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="reflex" class="attachment-checkbox" value="reflex">
+                        <label for="reflex">Reflex</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="eotech" class="attachment-checkbox" value="eotech">
+                        <label for="eotech">EOTECH</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="elcan" class="attachment-checkbox" value="elcan">
+                        <label for="elcan">Elcan</label>
+                    </div>
+
+                    <!-- Scopes -->
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="art-scope" class="attachment-checkbox" value="art">
+                        <label for="art-scope">ART Scope</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="pso-1" class="attachment-checkbox" value="pso-1">
+                        <label for="pso-1">PSO-1 Scope</label>
+                    </div>
+
+                    <!-- Carry Handle -->
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="carry-handle" class="attachment-checkbox" value="carry handle">
+                        <label for="carry-handle">Carry Handle</label>
+                    </div>
+
+                    <!-- Muzzle Attachments -->
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="flash-4-7" class="attachment-checkbox" value="4.7 mm flash hider">
+                        <label for="flash-4-7">4.77mm Flash Hider</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="a2-flash" class="attachment-checkbox" value="a2 flash hider">
+                        <label for="a2-flash">A2 Flash Hider</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="flash-6-8" class="attachment-checkbox" value="6.8x51mm flash hider">
+                        <label for="flash-6-8">6.8x51mm Flash Hider</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="flash-6p26" class="attachment-checkbox" value="6p26 flash hider">
+                        <label for="flash-6p26">6P26 Flash Hider</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="flash-7-62" class="attachment-checkbox"
+                            value="7.62x51mm flash hider">
+                        <label for="flash-7-62">7.62x51mm Flash Hider</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="muzzle-6p20" class="attachment-checkbox" value="6p20 muzzle brake">
+                        <label for="muzzle-6p20">6P20 Muzzle Brake</label>
+                    </div>
+                    <!-- None -->
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="none" class="attachment-checkbox" value="none">
+                        <label for="none">None</label>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="button-group">
-            <button class="filter-button" data-type="assault">Assault Rifles</button>
-            <button class="filter-button" data-type="machine-gun">Machine Guns</button>
-            <button class="filter-button" data-type="submachine">Submachine Guns</button>
-            <button class="filter-button" data-type="sniper">Snipers</button>
-            <button class="filter-button" data-type="shotgun">Shotguns</button>
-            <button class="filter-button" data-type="pistol">Pistols</button>
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-number" id="total-weapons">25</div>
+                <div class="stat-label">Total Weapons</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="filtered-count">25</div>
+                <div class="stat-label">Showing</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="categories-count">6</div>
+                <div class="stat-label">Categories</div>
+            </div>
         </div>
 
-        <div class="button-group">
-            <button class="view-toggle" data-view="all">Show All</button>
-            <button class="view-toggle" data-view="ammo">Ammo Only</button>
-            <button class="view-toggle" data-view="attachments">Attachments Only</button>
+        <div class="table-container">
+            <div class="table-wrapper">
+                <table id="compatibilityTable">
+                    <thead>
+                        <tr>
+                            <th>Weapon</th>
+                            <th>Ammunition</th>
+                            <th>Fire Modes</th>
+                            <th>Attachments</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
         </div>
-
-        <table id="compatibilityTable">
-            <thead>
-                <tr>
-                    <th onclick="sortTable(0)">Weapon</th>
-                    <th onclick="sortTable(1)">Ammo Type</th>
-                    <th onclick="sortTable(2)">Fire Modes</th>
-                    <th onclick="sortTable(3)">Attachments</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
     </div>
     <script src="weaponcompatibility.js"></script>
+    <script type="module" src="heartbeat.js"></script>
+
 </body>
 
 </html>

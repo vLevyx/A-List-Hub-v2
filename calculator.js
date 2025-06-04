@@ -8,8 +8,8 @@ const hqComponentsList = ['Component (HQ)', 'Kevlar', 'Weapon Part (HQ)', 'Stabi
 const kit = [];
 
 const itemsByCategory = {
-  'Weapons': ['AK-47', 'AKS-47U', 'CheyTac M200 Intervention', 'Colt 1911', 'Desert Eagle', 'M16A2', 'M16A2 - AUTO', 'M21 SWS', 'M249 SAW', 'M416', 'M9', 'MP 43 1C', 'MP5A2', 'MP7A2', 'PKM', 'PM', 'RPK-74',
-    'Sa-58P', 'Sa-58V', 'Scar-H', 'SIG MCX', 'SIG MCX SPEAR', 'SSG10A2-Sniper', 'Stegr AUG', 'SR-25 Rifle', 'SVD'],
+  'Weapons': ['AK-74', 'AKS-74U', 'CheyTac M200 Intervention', 'Colt 1911', 'Desert Eagle', 'M16A2', 'M16A2 - AUTO', 'M21 SWS', 'M249 SAW', 'M416', 'M9', 'MP 43 1C', 'MP5A2', 'MP7A2', 'PKM', 'PM', 'RPK-74',
+    'Sa-58P', 'Sa-58V', 'Scar-H', 'SIG MCX', 'SIG MCX SPEAR', 'SSG10A2-Sniper', 'Steyr AUG', 'SR-25 Rifle', 'SVD'],
 
   'Magazines': ['30rnd 9x19 Mag', '8rnd .45 ACP', '9x18mm 8rnd PM Mag', '9x19mm 15rnd M9 Mag', '.300 Blackout Mag', '.338 5rnd FMJ', '.50 AE 7rnd Mag',
     '12/70 7mm Buckshot', '4.6x40 40rnd Mag', '5.45x39mm 30rnd AK Mag', '5.45x39mm 45rnd RPK-74 Tracer Mag', '5.56x45mm 30rnd AUG Mag',
@@ -47,8 +47,8 @@ const itemsByCategory = {
 // Crafting levels for each item
 const craftingLevels = {
   // Weapons
-  'AK-47': 8,
-  'AKS-47U': 8,
+  'AK-74': 8,
+  'AKS-74U': 8,
   'CheyTac M200 Intervention': 13,
   'Colt 1911': 10,
   'Desert Eagle': 10,
@@ -70,7 +70,7 @@ const craftingLevels = {
   'SIG MCX': 7,
   'SIG MCX SPEAR': 10,
   'SSG10A2-Sniper': 10,
-  'Stegr AUG': 6,
+  'Steyr AUG': 6,
   'SR-25 Rifle': 11,
   'SVD': 10,
   // Magazines
@@ -335,11 +335,11 @@ if (kitSidebar && closeKitBtn && reopenKitBtn) {
 
 const itemComponents = {
   'Weapons': {
-    'AK-47': {
+    'AK-74': {
       'Non-HQ': {},
       'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
     },
-    'AKS-47U': {
+    'AKS-74U': {
       'Non-HQ': {},
       'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
     },
@@ -427,7 +427,7 @@ const itemComponents = {
       'Non-HQ': {},
       'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
     },
-    'Stegr AUG': {
+    'Steyr AUG': {
       'Non-HQ': { 'Weapon Part': 51, 'Stabilizer': 28, 'Attachment Part': 31 },
       'HQ': {}
     },
@@ -1160,8 +1160,8 @@ const craftingTimes = {
 
   // Final Items (Seconds per Item)
   // Weapons Time
-  'AK-47': 70,
-  'AKS-47U': 70,
+  'AK-74': 70,
+  'AKS-74U': 70,
   'CheyTac M200 Intervention': 110,
   'Colt 1911': 50,
   'Desert Eagle': 70,
@@ -1375,38 +1375,71 @@ function collectBaseResources(componentName, quantity) {
   return { resources: localMap, components: componentsMap };
 }
 
-function populateItems() {
+async function populateItems() {
   const category = document.getElementById('categories').value;
-  const items = itemsByCategory?.[category];
-  const itemsDropdown = document.getElementById('items');
-  const craftingLevelContainer = document.getElementById("crafting-level");
+  const itemSelect = document.getElementById('items');
+  const showAllToggle = document.getElementById('showAllToggle');
+  const showAll = showAllToggle.checked;
 
-  itemsDropdown.innerHTML = '';
+  itemSelect.innerHTML = '';
 
-  if (!items || !Array.isArray(items)) {
-    craftingLevelContainer.textContent = 'Crafting Level: NA';
-    return;
+  if (!(category in itemsByCategory)) return;
+
+  // Persist the toggle state
+  localStorage.setItem('showAllBlueprints', showAll ? '1' : '0');
+
+  const allItems = itemsByCategory[category];
+
+  let itemsToShow = [];
+
+  if (showAll) {
+    itemsToShow = allItems;
+  } else {
+    const { data: { session } } = await client.auth.getSession();
+    const discordId = session?.user?.user_metadata?.provider_id || session?.user?.user_metadata?.sub;
+
+    if (!discordId) return;
+
+    const { data: userBlueprints, error } = await client
+      .from('user_blueprints')
+      .select('blueprint_name')
+      .eq('discord_id', discordId);
+
+    if (error || !userBlueprints) {
+      console.error('Failed to fetch blueprints:', error);
+      return;
+    }
+
+    const ownedBlueprints = new Set(userBlueprints.map(bp => bp.blueprint_name));
+    itemsToShow = allItems.filter(item => ownedBlueprints.has(item));
   }
 
-  items.forEach(item => {
+  itemsToShow.forEach(item => {
     const option = document.createElement('option');
-    option.textContent = item;
     option.value = item;
-    itemsDropdown.appendChild(option);
+    option.textContent = item;
+    itemSelect.appendChild(option);
   });
 
-  // Set crafting level for the first item
-  const firstItem = itemsDropdown.value;
-  const firstLevel = craftingLevels[firstItem] || "NA";
-  craftingLevelContainer.textContent = `Crafting Level: ${firstLevel}`;
-
-  // Update crafting level when a new item is selected
-  itemsDropdown.addEventListener('change', () => {
-    const selectedItem = itemsDropdown.value;
-    const level = craftingLevels[selectedItem] || "NA";
-    craftingLevelContainer.textContent = `Crafting Level: ${level}`;
-  });
+  updateCraftingLevel(); // 🔁 Update after repopulating
 }
+
+function updateCraftingLevel() {
+  const item = document.getElementById('items').value;
+  const craftingLevelDiv = document.getElementById('crafting-level');
+
+  const level = craftingLevels[item];
+  craftingLevelDiv.textContent = `Crafting Level: ${level !== undefined ? level : 'N/A'}`;
+}
+
+// 🧠 Hook into changes
+document.getElementById('categories').addEventListener('change', populateItems);
+document.getElementById('showAllToggle').addEventListener('change', populateItems);
+
+// 🔁 Run once on load
+populateItems();
+
+document.getElementById('categories').addEventListener('change', populateItems);
 
 // Initialize items when the page loads
 populateItems();
@@ -1780,6 +1813,19 @@ function calculateMaterialRuns(totalResources) {
   resultContainer.appendChild(runDiv);
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+document.getElementById('items').addEventListener('change', updateCraftingLevel);
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const showAllToggle = document.getElementById('showAllToggle');
+  const savedToggleState = localStorage.getItem('showAllBlueprints');
+
+  if (showAllToggle && savedToggleState !== null) {
+    showAllToggle.checked = savedToggleState === '1';
+  }
+
+  document.getElementById('categories').addEventListener('change', populateItems);
+  showAllToggle?.addEventListener('change', populateItems);
+
   populateLoadoutDropdowns();
+  populateItems();
 });

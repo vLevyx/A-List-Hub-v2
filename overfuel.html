@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OverFuel+</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0a0a0b 0%, #1a1a1b 100%);
+      color: #f0f0f0;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .app-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-header {
+      text-align: center;
+      padding: 2rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 2rem;
+    }
+
+    .app-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(to right, #00c6ff, #0072ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    .app-subtitle {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 1.1rem;
+      font-weight: 400;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .stat-card:hover {
+      background: rgba(0, 198, 255, 0.05);
+      border-color: rgba(0, 198, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .stat-number {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #00c6ff;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stations-section {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+
+    .section-header {
+      background: rgba(0, 198, 255, 0.1);
+      border-bottom: 1px solid rgba(0, 198, 255, 0.2);
+      padding: 1.5rem;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #00c6ff;
+      margin: 0;
+    }
+
+    .stations-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .table-header {
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .table-header th {
+      padding: 1.2rem 1.5rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #00c6ff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .table-row {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: background-color 0.2s ease;
+    }
+
+    .table-row:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .table-row:last-child {
+      border-bottom: none;
+    }
+
+    .table-row td {
+      padding: 1.2rem 1.5rem;
+      vertical-align: middle;
+    }
+
+    .position-cell {
+      font-weight: 600;
+      color: #00c6ff;
+      font-size: 1rem;
+      width: 80px;
+    }
+
+    .station-cell {
+      color: rgba(255, 255, 255, 0.95);
+      font-weight: 500;
+      font-size: 1rem;
+    }
+
+    .type-cell {
+      font-size: 1.5rem;
+      text-align: center;
+      width: 80px;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+      .app-container {
+        padding: 0.5rem;
+      }
+
+      .app-title {
+        font-size: 2rem;
+      }
+
+      .app-subtitle {
+        font-size: 1rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+      }
+
+      .stat-card {
+        padding: 1rem;
+      }
+
+      .stat-number {
+        font-size: 1.8rem;
+      }
+
+      .section-header {
+        padding: 1rem;
+      }
+
+      .section-title {
+        font-size: 1.1rem;
+      }
+
+      .table-header th,
+      .table-row td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+      }
+
+      .position-cell {
+        width: 50px;
+        text-align: center;
+      }
+
+      .type-cell {
+        width: 50px;
+        font-size: 1.2rem;
+      }
+
+      .station-cell {
+        font-size: 0.85rem;
+        line-height: 1.3;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .app-header {
+        padding: 1.5rem 0;
+      }
+
+      .table-header th,
+      .table-row td {
+        padding: 0.6rem 0.25rem;
+        font-size: 0.8rem;
+      }
+
+      .position-cell {
+        width: 40px;
+        padding: 0.6rem 0.1rem;
+      }
+
+      .type-cell {
+        width: 40px;
+        font-size: 1.1rem;
+        padding: 0.6rem 0.1rem;
+      }
+
+      .station-cell {
+        font-size: 0.8rem;
+        padding: 0.6rem 0.5rem;
+      }
+
+      .table-header th:first-child,
+      .table-header th:last-child {
+        padding-left: 0.1rem;
+        padding-right: 0.1rem;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .table-header th,
+      .table-row td {
+        padding: 0.5rem 0.15rem;
+        font-size: 0.75rem;
+      }
+
+      .position-cell {
+        width: 35px;
+      }
+
+      .type-cell {
+        width: 35px;
+        font-size: 1rem;
+      }
+
+      .station-cell {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1 class="app-title">OverFuel+</h1>
+    </header>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number">12</div>
+        <div class="stat-label">Total Stations</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">8</div>
+        <div class="stat-label">Fuel Stations</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">3</div>
+        <div class="stat-label">Harbor Points</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">1</div>
+        <div class="stat-label">Airport Hub</div>
+      </div>
+    </div>
+
+    <div class="stations-section">
+      <div class="section-header">
+        <h2 class="section-title">Station Directory</h2>
+      </div>
+      
+      <table class="stations-table">
+        <thead class="table-header">
+          <tr>
+            <th>Position</th>
+            <th>Station</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="table-row">
+            <td class="position-cell">1</td>
+            <td class="station-cell">Monti Gas Station</td>
+            <td class="type-cell">⛽</td>
+          </tr>
+          <tr class="table-row">
+            <td class="position-cell">2</td>
+            <td class="station-cell">Meaux Harbour - Crabapple Bay</td>
+            <td class="type-cell">⚓</td>
+          </tr>
+          <tr class="table-row">
+            <td class="position-cell">3</td>
+            <td class="station-cell">Étoupe Gas Station (Parcel 4)</td>
+            <td class="type-cell">⛽</td>
+          </tr>
+          <tr class="table-row">
+            <td class="position-cell">4</td>
+            <td class="station-cell">VW Dealer</td>
+            <td class="type-cell">⛽</td>
+          </tr>
+          <tr class="table-row">
+            <td class="position-cell">5</td>
+            <td class="station-cell">St Philippe Gas Station</td>
+            <td class="type-cell">⛽</td>
+          </tr>
+          <tr class="table-row">
+            <td class="position-cell">6</td>
+            <td class="station-cell">St Philippe - Charlet Bay</td>
+            <td class="type-cell">⚓</td>
+          </tr>
+          <tr class="table-row">
+            <td class="position-cell">7</td>
+            <td class="station-cell">St Philippe - Birchwood Bay</td>
+            <td class="type-cell">⚓</td>
+          </tr>
+          <tr class="table-row">
+            <td class="position-cell">8</td>
+            <td class="station-cell">Airport</td>
+            <td class="type-cell">🛫</td>
+          </tr>
+          <tr class="table-row">
+            <td class="position-cell">9</td>
+            <td class="station-cell">Lamentin Gas Station</td>
+            <td class="type-cell">⛽</td>
+          </tr>
+          <tr class="table-row">
+            <td class="position-cell">10</td>
+            <td class="station-cell">St Pierre Gas Station</td>
+            <td class="type-cell">⛽</td>
+          </tr>
+          <tr class="table-row">
+            <td class="position-cell">11</td>
+            <td class="station-cell">Montingac Farm</td>
+            <td class="type-cell">🐏</td>
+          </tr>
+          <tr class="table-row">
+            <td class="position-cell">12</td>
+            <td class="station-cell">Morton Bay</td>
+            <td class="type-cell">⚓</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <script type="module" src="heartbeat.js"></script>
+</body>
+</html>

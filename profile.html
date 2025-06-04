@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Your Profile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+      color: #e8e8e8;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 20% 80%, rgba(0, 198, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(0, 114, 255, 0.03) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .back-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #00c6ff;
+      padding: 0.75rem 1.25rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 2rem;
+    }
+
+    .back-button:hover {
+      background: rgba(0, 198, 255, 0.1);
+      border-color: rgba(0, 198, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .profile-card {
+      background: rgba(20, 20, 20, 0.8);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 3rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 198, 255, 0.5), transparent);
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .avatar {
+      width: 106px;
+      height: 106px;
+      border-radius: 50%;
+      border: 3px solid rgba(0, 198, 255, 0.3);
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      box-sizing: content-box;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .profile-info h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #ffffff, #e8e8e8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .profile-subtitle {
+      color: #a0a0a0;
+      font-size: 1.1rem;
+      font-weight: 400;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 1.5rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .stat-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(0, 198, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .stat-label {
+      color: #a0a0a0;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      color: #ffffff;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .status-active {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .status-revoked {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .logout-button {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .logout-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+    }
+
+    .blueprints-section {
+      background: rgba(20, 20, 20, 0.8);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .blueprints-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 198, 255, 0.5), transparent);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .section-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 0.5rem;
+    }
+
+    .blueprint-counter {
+      background: rgba(0, 198, 255, 0.1);
+      border: 1px solid rgba(0, 198, 255, 0.2);
+      color: #00c6ff;
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+      display: inline-block;
+    }
+
+    .blueprint-description {
+      color: #a0a0a0;
+      font-size: 1rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+
+    .category-group {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .category-group:hover {
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.03);
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #ffffff;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+
+    .category-header:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .chevron {
+      font-size: 0.8rem;
+      color: #00c6ff;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .category-group[open] .chevron {
+      transform: rotate(180deg);
+    }
+
+    .category-content {
+      padding: 0 1.5rem 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .blueprint-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .blueprint-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(0, 198, 255, 0.2);
+    }
+
+    .blueprint-label {
+      color: #e8e8e8;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 48px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background: #ffffff;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    input:checked+.toggle-slider {
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      border-color: #00c6ff;
+    }
+
+    input:checked+.toggle-slider:before {
+      transform: translateX(24px);
+    }
+
+    .save-button {
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(0, 198, 255, 0.3);
+      margin-top: 2rem;
+    }
+
+    .save-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 198, 255, 0.4);
+    }
+
+    .save-button:active {
+      transform: translateY(0);
+    }
+
+    html {
+      background-color: #0a0a0a;
+    }
+
+    @media (max-width: 768px) {
+
+      html,
+      body {
+        height: 100%;
+        min-height: 100vh;
+        background-color: rgba(26, 26, 26, 0.95) !important;
+        background-image: none !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat;
+        background-size: cover;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: none !important;
+      }
+
+      .container {
+        width: 100%;
+        max-width: unset;
+        background: rgba(26, 26, 26, 0.7);
+        /* subtle dark background for mobile */
+        padding: 1rem;
+        border-radius: 1rem;
+      }
+
+      .profile-card,
+      .blueprints-section {
+        background: rgba(36, 36, 36, 0.95) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: none;
+      }
+
+      .stat-item {
+        background: rgba(60, 60, 60, 0.8) !important;
+      }
+
+      .category-group {
+        background: rgba(60, 60, 60, 0.7) !important;
+      }
+
+      .category-header {
+        background: rgba(60, 60, 60, 0.85) !important;
+      }
+
+      .blueprint-item {
+        background: rgba(60, 60, 60, 0.6) !important;
+      }
+
+      .profile-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+      }
+
+      .profile-info h1 {
+        font-size: 2rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .category-content {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <button onclick="history.back()" class="back-button">
+      ← Back
+    </button>
+
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="avatar">
+          <img id="avatar" src="" alt="Avatar">
+        </div>
+        <div class="profile-info">
+          <h1 id="username">Loading...</h1>
+          <div class="profile-subtitle">Discord Profile</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">Discord ID</div>
+          <div class="stat-value" id="discordId">Loading...</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Status</div>
+          <div id="statusContainer">
+            <span class="status-badge status-active" id="status">Loading...</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Member Since</div>
+          <div class="stat-value" id="createdAt">Loading...</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Last Login</div>
+          <div class="stat-value" id="lastLogin">Loading...</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Login Count</div>
+          <div class="stat-value" id="loginCount">Loading...</div>
+        </div>
+      </div>
+
+      <button class="logout-button" onclick="logout()">Sign Out</button>
+    </div>
+
+    <div class="blueprints-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">My Blueprints</h2>
+          <div class="blueprint-counter" id="blueprintCount">📃 Selected: 0 / 0 Blueprints</div>
+        </div>
+      </div>
+
+      <div class="blueprint-description">
+        Select the blueprints you own. These will appear in the Crafting Calculator and help optimize your gameplay
+        experience.
+      </div>
+
+      <div id="blueprintList"></div>
+
+      <button class="save-button" onclick="saveBlueprints()">Save Blueprint Selection</button>
+    </div>
+  </div>
+  <script type="module" src="profile.js"></script>
+  <script type="module" src="heartbeat.js"></script>
+
+</body>
+
+</html>

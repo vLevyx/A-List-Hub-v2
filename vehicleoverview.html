@@ -167,33 +167,32 @@
         }
 
         .search-container {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-}
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
 
-#vehicleSearch {
-  width: 100%;
-  max-width: 400px;
-  padding: 0.5rem 1rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-  font-size: 1rem;
-  backdrop-filter: blur(8px);
-  font-family: 'Outfit', sans-serif;
-}
+        #vehicleSearch {
+            width: 100%;
+            max-width: 400px;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1rem;
+            backdrop-filter: blur(8px);
+            font-family: 'Outfit', sans-serif;
+        }
 
-#vehicleSearch::placeholder {
-  color: #aaa;
-}
+        #vehicleSearch::placeholder {
+            color: #aaa;
+        }
 
-#vehicleSearch:focus {
-  outline: none;
-  border-color: #5ca9ff;
-}
-
+        #vehicleSearch:focus {
+            outline: none;
+            border-color: #5ca9ff;
+        }
     </style>
 </head>
 
@@ -204,24 +203,19 @@
             <div class="dropdown-wrapper">
                 <label for="reputation">Reputation Discount:</label>
                 <select id="reputation" onchange="updatePrices()">
-      <option value="neutral">Neutral</option>
-      <option value="positive1">Positive +</option>
-      <option value="positive2">Positive ++</option>
-      <option value="positive3">Positive +++</option>
-      <option value="negative1">Negative +</option>
-      <option value="negative2">Negative ++</option>
-      <option value="negative3">Negative +++</option>
-    </select>
+                    <option value="neutral">Neutral</option>
+                    <option value="positive1">Positive +</option>
+                    <option value="positive2">Positive ++</option>
+                    <option value="positive3">Positive +++</option>
+                    <option value="negative1">Negative +</option>
+                    <option value="negative2">Negative ++</option>
+                    <option value="negative3">Negative +++</option>
+                </select>
             </div>
         </div>
 
         <div class="search-container">
-            <input
-    type="text"
-    id="vehicleSearch"
-    placeholder="Search vehicles..."
-    oninput="filterVehicles()"
-  />
+            <input type="text" id="vehicleSearch" placeholder="Search vehicles..." oninput="filterVehicles()" />
         </div>
         <div id="vehicle-container" class="vehicle-container"></div>
     </div>
@@ -242,6 +236,8 @@
     </div>
 
     <script src="vehicleoverview.js"></script>
+    <script type="module" src="heartbeat.js"></script>
+
 </body>
 
 </html>

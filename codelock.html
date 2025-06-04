@@ -2,151 +2,226 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
     <title>Code Lock Solver</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-            text-align: center;
-            background: #121212;
-            color: #eee;
+        :root {
+            --background-color: rgba(0, 0, 0, 0.8);
+            --gold: gold;
+            --text-color: #e0e0e0;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(20, 20, 20, 0.75);
+            --glass-blur: blur(12px);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
 
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #121212;
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+            background: linear-gradient(135deg, #121212 0%, #1a1a1a 100%);
+        }
+
         h1 {
-            font-size: clamp(24px, 4vw, 36px);
-            margin: 20px 0;
+            font-size: clamp(28px, 5vw, 40px);
+            font-weight: 700;
+            margin: 16px 0 24px;
             color: #fff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .container {
             display: flex;
             justify-content: center;
-            margin-top: 10px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
         .grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            width: clamp(180px, 60vw, 300px);
-            margin: 0 auto;
+            gap: 10px;
+            width: 100%;
+            max-width: 320px;
+            padding: 12px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: var(--glass-border);
+            border-radius: 1rem;
         }
 
         .cell {
             aspect-ratio: 1 / 1;
-            background-color: gold;
-            color: black;
+            background-color: var(--gold);
+            color: #000;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: clamp(16px, 4vw, 22px);
-            border: 2px solid #555;
+            font-size: clamp(18px, 5vw, 24px);
+            font-weight: 600;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.75rem;
             cursor: pointer;
             user-select: none;
-            transition: box-shadow 0.3s;
-            border-radius: 0.5rem;
+            transition: background-color 0.1s ease, color 0.1s ease, border 0.1s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
 
         .cell.off {
-            background-color: #333;
-            color: white;
+            background-color: #2a2a2a;
+            color: var(--text-color);
+            border: 2px solid rgba(255, 255, 255, 0.1);
         }
 
         .highlight {
-            box-shadow: 0 0 15px 5px white;
+            box-shadow: 0 0 20px 5px rgba(255, 255, 255, 0.7);
+            transform: scale(1.05);
         }
 
         .button-row {
             display: flex;
             justify-content: center;
-            gap: 12px;
-            margin: 16px auto;
+            gap: 16px;
+            margin-bottom: 24px;
             flex-wrap: wrap;
         }
 
         button {
-            padding: 10px 20px;
-            font-size: clamp(14px, 2vw, 16px);
+            padding: 12px 24px;
+            font-size: clamp(14px, 2.5vw, 16px);
+            font-weight: 600;
             cursor: pointer;
-            border-radius: 0.4rem;
             border: none;
-            background-color: #fff;
-            color: #121212;
-            transition: background-color 0.2s ease, transform 0.2s ease;
+            border-radius: 0.75rem;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: var(--glass-border);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
         }
 
         .solution-title {
-            font-size: 18px;
-            margin-top: 10px;
+            font-size: clamp(16px, 3vw, 18px);
+            font-weight: 600;
+            margin-bottom: 12px;
         }
 
         .solution-grid {
             display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 8px;
-            flex-wrap: wrap;
+            flex-direction: row;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 12px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: var(--glass-border);
+            border-radius: 1rem;
+            max-width: 100%;
+            white-space: nowrap;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
         }
 
+
         .solution-box {
-            width: clamp(35px, 10vw, 45px);
-            height: clamp(35px, 10vw, 45px);
-            background-color: #444;
-            color: white;
+            width: clamp(40px, 12vw, 50px);
+            height: clamp(40px, 12vw, 50px);
+            background: #2a2a2a;
+            color: var(--text-color);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: clamp(14px, 3.5vw, 20px);
-            border: 2px solid #999;
-            border-radius: 0.5rem;
+            font-size: clamp(16px, 4vw, 20px);
+            font-weight: 600;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
 
         .help-button,
         .settings-button {
-            position: fixed;
+            all: unset;
             font-size: 24px;
-            background: transparent;
-            border: none;
-            color: white;
+            color: var(--text-color);
+            position: fixed;
             cursor: pointer;
             z-index: 1000;
+            user-select: none;
+            line-height: 1;
+        }
+
+        .help-button {
+            right: 80px;
+            top: 30px
+        }
+
+        .settings-button {
+            right: 30px;
+            top: 30px
         }
 
         .help-button:hover,
         .settings-button:hover {
-            transform: none;
-            color: white;
-        }
-
-        .help-button {
-            top: 12px;
-            right: 16px;
-        }
-
-        .settings-button {
-            top: 50px;
-            right: 16px;
+            color: gold;
+            transform: scale(1.1);
         }
 
         .help-popup,
         .settings-panel {
             position: fixed;
+            top: 80px;
             right: 16px;
-            background: rgba(30, 30, 30, 0.95);
-            color: white;
-            padding: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: var(--glass-border);
+            color: var(--text-color);
+            padding: 20px;
             border-radius: 1rem;
-            font-size: 14px;
-            line-height: 1.5;
-            display: none;
-            max-width: 300px;
-            backdrop-filter: blur(10px);
+            font-size: clamp(13px, 2.5vw, 14px);
+            line-height: 1.6;
+            max-width: 320px;
+            max-height: 70vh;
+            overflow-y: auto;
             z-index: 1001;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+            display: none;
+        }
+
+        .help-popup::-webkit-scrollbar,
+        .settings-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .help-popup::-webkit-scrollbar-thumb,
+        .settings-panel::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
         }
 
         .help-popup.show,
@@ -154,59 +229,116 @@
             display: block;
         }
 
-        .help-popup {
-            top: 90px;
-        }
-
-        .settings-panel {
-            top: 90px;
-        }
-
         .close {
             text-align: right;
-            margin-top: 8px;
-            font-size: 13px;
+            margin-top: 12px;
+            font-size: 14px;
             color: #bbb;
             cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #fff;
         }
 
         .setting-group {
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             text-align: left;
         }
 
         select {
             width: 100%;
-            padding: 8px 12px;
-            font-size: 14px;
-            background-color: #222;
-            color: #eee;
-            border: 1px solid #444;
-            border-radius: 0.4rem;
-            margin-top: 4px;
-            transition: border 0.2s ease, box-shadow 0.2s ease;
+            padding: 10px;
+            font-size: clamp(13px, 2.5vw, 14px);
+            background: #2a2a2a;
+            color: var(--text-color);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            margin-top: 8px;
+            transition: all 0.3s ease;
         }
 
         select:focus {
             outline: none;
-            border-color: #3fa9f5;
-            box-shadow: 0 0 0 2px rgba(63, 169, 245, 0.3);
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.3);
+        }
+
+        input[type="checkbox"] {
+            accent-color: var(--gold);
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            margin: 12px 0;
+        }
+
+        .gold-text {
+            color: var(--gold);
+        }
+
+        .help-button,
+        .settings-button {
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        .help-button::-moz-focus-inner,
+        .settings-button::-moz-focus-inner {
+            border: 0 !important;
+            padding: 0 !important;
+        }
+
+        body.modal-open {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
         }
 
         @media (max-width: 500px) {
 
+            .container {
+                margin-top: 20px;
+            }
+
             .help-popup,
             .settings-panel {
-                left: 20px;
-                right: 20px;
-                max-width: unset;
+                left: 16px;
+                right: 16px;
+                max-width: calc(100% - 32px);
+                top: 70px;
+                max-height: 60vh;
+            }
+
+            .help-button,
+            .settings-button {
+                right: 16px;
+                top: auto;
+                left: auto;
+                position: fixed;
+            }
+
+            .help-button {
+                top: 20px;
+                right: 20px
+            }
+
+            .settings-button {
+                top: 70px;
+                right: 20px
             }
         }
     </style>
 </head>
 
 <body>
-
     <h1>Code Lock Solver</h1>
 
     <!-- Help & Settings -->
@@ -216,24 +348,27 @@
     <!-- Help Popup -->
     <div class="help-popup" id="helpPopup">
         <strong>How to Use:</strong><br><br>
-        This Code Lock Solver is used for the <strong>ELAN Life ARMA Server</strong> during
-        <strong>fuel station robberies</strong>.<br><br>
+        This Code Lock Solver is used for the <span class="gold-text">ELAN Life ARMA Server</span> during
+        <span class="gold-text">fuel station robberies.</span><br><br>
         When robbing, you'll see a "Lights Out" puzzle on crates. You have <strong>3 seconds</strong> to view it before
-        it
-        resets.<br><br>
-        <strong>Use this tool on a second device</strong> (like a phone or tablet). Tap the boxes on this grid to match
-        the <strong>[OFF]</strong> lights you see in-game.<br><br>
+        it resets.<br><br>
+        <span class="gold-text">Use this tool on a second device</span> (like a phone or tablet). Tap the boxes on this
+        grid
+        to match
+        the <span class="gold-text">[OFF]</span> lights you see in-game.<br><br>
         Tap “Solve” to view the solution. Then quickly tap the correct boxes in-game in the shown order to complete the
         puzzle.<br><br>
 
-        <hr style="border: none; border-top: 1px solid #444; margin: 10px 0;">
+        <hr>
 
         <strong>Settings Explained:</strong><br><br>
-        <strong>Auto Solve Threshold:</strong><br>
-        If enabled, this automatically triggers the solver when the selected number of lights are toggled OFF. Set to
-        <strong>OFF</strong> to disable auto-solving entirely.<br><br>
-        <strong>Highlight Solution:</strong><br>
-        When enabled, the solver will highlight the correct grid squares in order after solving to help you follow the
+        <span class="gold-text">Auto Solve Threshold:</span><br>
+        If enabled, this <span class="gold-text">automatically triggers the solver</span> when the selected number of
+        lights are toggled <span class="gold-text">OFF</span>. Set to
+        <span class="gold-text">OFF</span> to disable auto-solving entirely.<br><br>
+        <span class="gold-text">Highlight Solution:</span><br>
+        When enabled, the solver will <span class="gold-text">highlight the correct grid squares in order</span> after
+        solving to help you follow the
         solution visually. Turn this OFF for a quicker, distraction-free solution.<br><br>
 
         <div class="close" onclick="toggleHelp()">✖ Close</div>
@@ -280,135 +415,286 @@
     <div class="solution-title" id="solution-title"></div>
     <div class="solution-grid" id="solution-grid"></div>
 
-    <!-- JavaScript -->
     <script>
-        const toggleMap = {
-            1: [0, 1, 3],
-            2: [0, 1, 2, 4],
-            3: [1, 2, 5],
-            4: [0, 3, 4, 6],
-            5: [1, 3, 4, 5, 7],
-            6: [2, 4, 5, 8],
-            7: [3, 6, 7],
-            8: [4, 6, 7, 8],
-            9: [5, 7, 8]
-        };
+        // Ordered for efficient loading and execution
 
-        const gridEl = document.getElementById('grid');
-        const cells = [];
+        // Heartbeat System -- Updates ONLINE users in Admin Dashboard
+        setInterval(async () => {
+            const session = await client.auth.getSession();
+            if (session?.data?.session) {
+                await client.from('users').update({ last_login: new Date().toISOString() }).eq('discord_id', session.data.session.user.user_metadata.provider_id);
+            }
+        }, 2 * 60 * 1000);
 
-        for (let i = 0; i < 9; i++) {
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
-            cell.textContent = i + 1;
-            cell.onclick = () => {
-                cell.classList.toggle('off');
-                const autoThreshold = parseInt(document.getElementById('thresholdSelect').value);
-                const offCount = cells.filter(c => c.classList.contains('off')).length;
-                if (autoThreshold > 0 && offCount >= autoThreshold) solve();
-            };
-            cells.push(cell);
-            gridEl.appendChild(cell);
-        }
+        (function () {
+            'use strict';
 
-        function getTargetState() {
-            return cells.map(cell => cell.classList.contains('off') ? 0 : 1);
-        }
+            // Constants and configuration (defined first for hoisting)
+            const TOGGLE_MAP = Object.freeze({
+                1: [0, 1, 3],
+                2: [0, 1, 2, 4],
+                3: [1, 2, 5],
+                4: [0, 3, 4, 6],
+                5: [1, 3, 4, 5, 7],
+                6: [2, 4, 5, 8],
+                7: [3, 6, 7],
+                8: [4, 6, 7, 8],
+                9: [5, 7, 8]
+            });
 
-        function applyPress(grid, presses) {
-            const newGrid = [...grid];
-            for (let p of presses) {
-                for (let idx of toggleMap[p]) {
-                    newGrid[idx] ^= 1;
+            const ANIMATION_DELAY = 300;
+            const GRID_SIZE = 9;
+
+            // Global state variables
+            let gridElement = null;
+            let cells = [];
+
+            // Utility functions (pure functions defined early)
+            function arraysEqual(a, b) {
+                return a.length === b.length && a.every((v, i) => v === b[i]);
+            }
+
+            function combinations(arr, k) {
+                const result = [];
+
+                function helper(start, currentCombination) {
+                    if (currentCombination.length === k) {
+                        result.push([...currentCombination]);
+                        return;
+                    }
+
+                    for (let i = start; i < arr.length; i++) {
+                        currentCombination.push(arr[i]);
+                        helper(i + 1, currentCombination);
+                        currentCombination.pop();
+                    }
+                }
+
+                helper(0, []);
+                return result;
+            }
+
+            function applyPress(grid, presses) {
+                const newGrid = [...grid];
+                for (const press of presses) {
+                    const toggleIndices = TOGGLE_MAP[press];
+                    for (const idx of toggleIndices) {
+                        newGrid[idx] ^= 1;
+                    }
+                }
+                return newGrid;
+            }
+
+            // Game logic functions
+            function getTargetState() {
+                return cells.map(cell => cell.classList.contains('off') ? 0 : 1);
+            }
+
+            function solve() {
+                const target = getTargetState();
+                const allButtons = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+                // Try solutions from 0 to 9 button presses
+                for (let numPresses = 0; numPresses <= GRID_SIZE; numPresses++) {
+                    const combos = combinations(allButtons, numPresses);
+
+                    for (const combo of combos) {
+                        const result = applyPress(new Array(GRID_SIZE).fill(1), combo);
+                        if (arraysEqual(result, target)) {
+                            displaySolution(combo);
+
+                            // Check if highlighting is enabled
+                            const highlightToggle = document.getElementById('highlightToggle');
+                            if (highlightToggle && highlightToggle.checked) {
+                                animatePresses(combo);
+                            }
+                            return;
+                        }
+                    }
+                }
+
+                // No solution found
+                displaySolution([]);
+                const solutionTitle = document.getElementById('solution-title');
+                if (solutionTitle) {
+                    solutionTitle.textContent = "No solution found.";
                 }
             }
-            return newGrid;
-        }
 
-        function solve() {
-            const target = getTargetState();
-            for (let n = 0; n <= 9; n++) {
-                const combos = combinations([1, 2, 3, 4, 5, 6, 7, 8, 9], n);
-                for (let combo of combos) {
-                    const result = applyPress(Array(9).fill(1), combo);
-                    if (arraysEqual(result, target)) {
-                        displaySolution(combo);
-                        if (document.getElementById('highlightToggle').checked) {
-                            animatePresses(combo);
-                        }
-                        return;
+            function displaySolution(steps) {
+                const titleElement = document.getElementById('solution-title');
+                const gridElement = document.getElementById('solution-grid');
+
+                if (!titleElement || !gridElement) return;
+
+                gridElement.innerHTML = '';
+
+                if (steps.length === 0) {
+                    titleElement.textContent = "No solution found.";
+                    return;
+                }
+
+                titleElement.textContent = "Solution:";
+
+                // Create solution boxes using DocumentFragment for better performance
+                const fragment = document.createDocumentFragment();
+                for (const step of steps) {
+                    const box = document.createElement('div');
+                    box.className = 'solution-box';
+                    box.textContent = step;
+                    fragment.appendChild(box);
+                }
+                gridElement.appendChild(fragment);
+            }
+
+            async function animatePresses(steps) {
+                for (const step of steps) {
+                    const index = step - 1;
+                    const cell = cells[index];
+
+                    if (cell) {
+                        cell.classList.add('highlight');
+                        await new Promise(resolve => setTimeout(resolve, ANIMATION_DELAY));
+                        cell.classList.remove('highlight');
                     }
                 }
             }
-            displaySolution([]);
-            document.getElementById('solution-title').textContent = "No solution found.";
-        }
 
-        function resetGrid() {
-            cells.forEach(cell => cell.classList.remove('off', 'highlight'));
-            document.getElementById('solution-title').textContent = '';
-            document.getElementById('solution-grid').innerHTML = '';
-        }
+            function resetGrid() {
+                cells.forEach(cell => {
+                    cell.classList.remove('off', 'highlight');
+                });
 
-        function displaySolution(steps) {
-            const titleEl = document.getElementById('solution-title');
-            const gridEl = document.getElementById('solution-grid');
-            gridEl.innerHTML = '';
+                const solutionTitle = document.getElementById('solution-title');
+                const solutionGrid = document.getElementById('solution-grid');
 
-            if (steps.length === 0) {
-                titleEl.textContent = "No solution found.";
-                return;
+                if (solutionTitle) solutionTitle.textContent = '';
+                if (solutionGrid) solutionGrid.innerHTML = '';
             }
 
-            titleEl.textContent = "Solution:";
-            for (let step of steps) {
-                const box = document.createElement('div');
-                box.className = 'solution-box';
-                box.textContent = step;
-                gridEl.appendChild(box);
-            }
-        }
+            // Event handlers
+            function handleCellClick(cellIndex) {
+                return function () {
+                    const cell = cells[cellIndex];
+                    if (!cell) return;
 
-        async function animatePresses(steps) {
-            for (const step of steps) {
-                const index = step - 1;
-                const cell = cells[index];
-                cell.classList.add('highlight');
-                await new Promise(r => setTimeout(r, 300));
-                cell.classList.remove('highlight');
-            }
-        }
+                    cell.classList.toggle('off');
 
-        function combinations(arr, k) {
-            const res = [];
-            const helper = (start, comb) => {
-                if (comb.length === k) {
-                    res.push([...comb]);
-                    return;
+                    // Check auto-solve threshold
+                    const thresholdSelect = document.getElementById('thresholdSelect');
+                    if (thresholdSelect) {
+                        const autoThreshold = parseInt(thresholdSelect.value, 10);
+                        const offCount = cells.filter(c => c.classList.contains('off')).length;
+
+                        if (autoThreshold > 0 && offCount >= autoThreshold) {
+                            // Use requestAnimationFrame for smoother execution
+                            requestAnimationFrame(solve);
+                        }
+                    }
+                };
+            }
+
+            function toggleHelp() {
+                const helpPopup = document.getElementById('helpPopup');
+                const settingsPanel = document.getElementById('settingsPanel');
+
+                if (helpPopup) helpPopup.classList.toggle('show');
+                if (settingsPanel) settingsPanel.classList.remove('show');
+            }
+
+            function toggleSettings() {
+                const settingsPanel = document.getElementById('settingsPanel');
+                const helpPopup = document.getElementById('helpPopup');
+
+                if (settingsPanel) settingsPanel.classList.toggle('show');
+                if (helpPopup) helpPopup.classList.remove('show');
+            }
+
+            // Initialization functions
+            function initializeGrid() {
+                gridElement = document.getElementById('grid');
+                if (!gridElement) {
+                    console.error('Grid element not found');
+                    return false;
                 }
-                for (let i = start; i < arr.length; i++) {
-                    comb.push(arr[i]);
-                    helper(i + 1, comb);
-                    comb.pop();
+
+                // Clear existing cells
+                cells = [];
+                gridElement.innerHTML = '';
+
+                // Create cells using DocumentFragment for better performance
+                const fragment = document.createDocumentFragment();
+
+                for (let i = 0; i < GRID_SIZE; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.textContent = i + 1;
+                    cell.setAttribute('tabindex', '0'); // Add keyboard accessibility
+                    cell.setAttribute('role', 'button');
+                    cell.setAttribute('aria-label', `Cell ${i + 1}`);
+
+                    // Add click handler
+                    cell.addEventListener('click', handleCellClick(i));
+
+                    // Add keyboard support for accessibility
+                    cell.addEventListener('keydown', function (event) {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            handleCellClick(i)();
+                        }
+                    });
+
+                    cells.push(cell);
+                    fragment.appendChild(cell);
                 }
-            };
-            helper(0, []);
-            return res;
-        }
 
-        function arraysEqual(a, b) {
-            return a.every((v, i) => v === b[i]);
-        }
+                gridElement.appendChild(fragment);
+                return true;
+            }
 
-        function toggleHelp() {
-            document.getElementById('helpPopup').classList.toggle('show');
-        }
+            function initializePanels() {
+                // Ensure panels are hidden on page load
+                const helpPopup = document.getElementById('helpPopup');
+                const settingsPanel = document.getElementById('settingsPanel');
 
-        function toggleSettings() {
-            document.getElementById('settingsPanel').classList.toggle('show');
-        }
+                if (helpPopup) helpPopup.classList.remove('show');
+                if (settingsPanel) settingsPanel.classList.remove('show');
+            }
+
+            // Main initialization function
+            function initialize() {
+                try {
+                    initializePanels();
+                    const gridInitialized = initializeGrid();
+
+                    if (!gridInitialized) {
+                        console.error('Failed to initialize grid');
+                        return;
+                    }
+
+                    console.log('Lights Out puzzle initialized successfully');
+                } catch (error) {
+                    console.error('Error initializing puzzle:', error);
+                }
+            }
+
+            // DOM ready check and initialization
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initialize);
+            } else {
+                // DOM already loaded
+                initialize();
+            }
+
+            // Expose necessary functions to global scope for HTML onclick handlers
+            window.solve = solve;
+            window.resetGrid = resetGrid;
+            window.toggleHelp = toggleHelp;
+            window.toggleSettings = toggleSettings;
+
+        })();
     </script>
-
+    <script type="module" src="heartbeat.js"></script>
 </body>
 
 </html>

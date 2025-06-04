@@ -38,6 +38,8 @@
       backdrop-filter: blur(10px);
       background: rgba(30, 30, 30, 0.6);
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      position: relative;
+      z-index: 1000;
     }
 
     .navbar {
@@ -88,6 +90,8 @@
       align-items: center;
       text-align: center;
       padding: 2rem;
+      position: relative;
+      z-index: 1;
     }
 
     .hero-content {
@@ -123,6 +127,12 @@
       text-decoration: none;
       position: relative;
       transition: transform 0.2s ease;
+    }
+
+    .cta-button .button-text {
+      display: inline-block;
+      position: relative;
+      z-index: 1;
     }
 
     .cta-button:hover {
@@ -205,6 +215,207 @@
       backdrop-filter: blur(10px);
     }
 
+    .brand-title {
+      position: relative;
+      display: inline-block;
+      font-size: 1.8rem;
+      color: #fff;
+    }
+
+    .version-tag {
+      position: absolute;
+      top: 0.2rem;
+      right: -1.7rem;
+      font-size: 0.6rem;
+      background: #00c6ff;
+      color: #121212;
+      padding: 0.1rem 0.35rem;
+      border-radius: 0.25rem;
+      font-weight: 600;
+    }
+
+    .profile-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .profile-info img {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+    }
+
+    .profile-info span {
+      font-weight: 600;
+      color: #00c6ff;
+    }
+
+    .profile-menu {
+      display: none;
+      position: absolute;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      top: 40px;
+      right: 0px;
+      z-index: 9999;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      opacity: 0;
+      transform: translateY(-10px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+      min-width: 120px;
+    }
+
+    .profile-menu.show {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .profile-menu a,
+    .profile-menu button {
+      display: block;
+      text-decoration: none;
+      color: #00c6ff;
+      font-weight: 600;
+      padding: 0.5rem;
+      border-radius: 0.3rem;
+      text-align: left;
+      width: 100%;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .profile-menu a:hover,
+    .profile-menu button:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .profile-menu button {
+      color: #ff4c4c;
+    }
+
+    .login-button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #7289da, #5865f2);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 0.75rem;
+      box-shadow: 0 0 10px rgba(114, 137, 218, 0.4);
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .login-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 16px rgba(114, 137, 218, 0.6);
+    }
+
+    .login-button::before {
+      content: '';
+      display: inline-block;
+      background: url('https://cdn.jsdelivr.net/gh/edent/SuperTinyIcons/images/svg/discord.svg') no-repeat center center;
+      background-size: contain;
+      width: 24px;
+      height: 24px;
+    }
+
+    .cta-button.locked {
+      position: relative;
+      pointer-events: none;
+      opacity: 0.6;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #888;
+      text-shadow: none;
+    }
+
+    .lock-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5rem;
+      color: #00c6ff;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .cta-button.locked span {
+      color: inherit;
+      z-index: 1;
+    }
+
+    .unlock-plus-button {
+      display: none;
+      margin: 2rem auto;
+      padding: 1.2rem 2.5rem;
+      font-size: 1.3rem;
+      font-weight: 700;
+      text-align: center;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 165, 0, 0.8), rgba(218, 165, 32, 0.9));
+      backdrop-filter: blur(15px);
+      border: 2px solid rgba(255, 215, 0, 0.4);
+      color: #1a0e00;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+      border-radius: 1.2rem;
+      box-shadow:
+        0 8px 32px rgba(255, 215, 0, 0.3),
+        0 4px 16px rgba(255, 165, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      max-width: 420px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .unlock-plus-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .unlock-plus-button:hover {
+      transform: scale(1.03) translateY(-2px);
+      background: linear-gradient(135deg, rgba(255, 215, 0, 1), rgba(255, 165, 0, 0.9), rgba(218, 165, 32, 1));
+      border-color: rgba(255, 215, 0, 0.6);
+      box-shadow:
+        0 12px 40px rgba(255, 215, 0, 0.4),
+        0 6px 20px rgba(255, 165, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .unlock-plus-button:hover::before {
+      left: 100%;
+    }
+
+    /* Loading state for buttons */
+    .cta-button.loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
     @media (max-width: 768px) {
       .navbar {
         flex-direction: column;
@@ -233,159 +444,74 @@
         width: 100%;
         max-width: 400px;
         margin: 0.85rem auto;
-        /* Increased spacing */
         text-align: center;
         white-space: normal;
       }
-    }
 
-    .brand-title {
-      position: relative;
-      display: inline-block;
-      font-size: 1.8rem;
-      color: #fff;
-    }
-
-    .version-tag {
-      position: absolute;
-      top: 0.2rem;
-      right: -1.7rem;
-      font-size: 0.6rem;
-      background: #00c6ff;
-      color: #121212;
-      padding: 0.1rem 0.35rem;
-      border-radius: 0.25rem;
-      font-weight: 600;
-    }
-
-    #password-screen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100vh;
-      background: rgba(18, 18, 18, 0.9);
-      backdrop-filter: blur(12px);
-      z-index: 9999;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .password-box {
-      background: rgba(30, 30, 30, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 1rem;
-      padding: 2rem;
-      text-align: center;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-    }
-
-    .password-box h2 {
-      margin-bottom: 1rem;
-      color: #00c6ff;
-    }
-
-    .password-box input {
-      padding: 0.6rem 1rem;
-      width: 100%;
-      max-width: 250px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
-      color: #fff;
-      font-size: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .password-box button {
-      padding: 0.6rem 1.5rem;
-      background: linear-gradient(135deg, #00c6ff, #0072ff);
-      color: #121212;
-      border: none;
-      border-radius: 0.5rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-
-    .password-box button:hover {
-      transform: scale(1.05);
-    }
-
-    #password-error {
-      color: #ff4c4c;
-      margin-top: 0.75rem;
+      .profile-menu {
+        top: 45px !important;
+        right: 0px !important;
+        width: 150px;
+      }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 
 <body>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-<script>
-  const supabase = supabase.createClient(
-    'https://dsexkdjxmhgqahrlkvax.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzZXhrZGp4bWhncWFocmxrdmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0ODAxNTAsImV4cCI6MjA2NDA1NjE1MH0.RW_ROpcNUNZaK9xGH2OFwHBSmFsGrLj-yi3LWCPBCvA'
-  );
-
-  async function loginWithDiscord() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'discord'
-    });
-    if (error) console.error('Login error:', error);
-  }
-
-  async function checkUser() {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (session) {
-      const user = session.user;
-      const { error } = await supabase
-        .from('users')
-        .upsert({
-          id: user.id,
-          username: user.user_metadata?.name || '',
-          email: user.email || '',
-          revoked: false
-        });
-
-      if (error) console.error('Upsert error:', error);
-    } else {
-      loginWithDiscord();
-    }
-  }
-
-  checkUser();
-</script>
-
   <header>
     <nav class="navbar">
       <h1 class="brand-title">
         The A-List
         <span class="version-tag">v2</span>
       </h1>
-      <button onclick="loginWithDiscord()">Login with Discord</button>
     </nav>
   </header>
 
   <section class="hero">
     <div class="hero-content">
       <h2>A-List ELAN Hub</h2>
-      <p><strong>Everything</strong> you need, <strong>nothing</strong> you don’t.</p>
-      <a href="calculator.html" class="cta-button">
-        Crafting Calculator <span class="tag new">New!</span></a>
+      <p><strong>Everything</strong> you need, <strong>nothing</strong> you don't.</p>
 
-      <a href="weaponcompatibility.html" class="cta-button">
-        Weapon Compatibility <span class="tag updated">Updated!</span></a>
+      <!-- Crafting Calculator (Requires Access) -->
+      <a href="calculator.html" class="cta-button loading" data-requires-access="true">
+        <span class="button-text">Crafting Calculator</span>
+        <span class="tag updated">Updated!</span>
+      </a>
 
-      <a href="vehicleoverview.html" class="cta-button">Vehicle Overview</a>
+      <!-- Weapon Compatibility (Requires Access) -->
+      <a href="weaponcompatibility.html" class="cta-button loading" data-requires-access="true">
+        <span class="button-text">Weapon Compatibility</span>
+        <span class="tag updated">Updated!</span>
+      </a>
 
-      <a href="codelock.html" class="cta-button">Code Lock Solver</a>
+      <!-- Vehicle Overview (Free) -->
+      <a href="vehicleoverview.html" class="cta-button">
+        <span class="button-text">Vehicle Overview</span>
+      </a>
 
-      <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3194800812" class="cta-button">Freshie Guide</a>
+      <!-- OverFuel+ (Requires Access) -->
+      <a href="overfuel.html" class="cta-button loading" data-requires-access="true">
+        <span class="tag new">New!</span>
+        <span class="button-text">OverFuel+</span>
+      </a>
+
+      <!-- Code Lock Solver (Requires Access) -->
+      <a href="codelock.html" class="cta-button loading" data-requires-access="true">
+        <span class="button-text">Code Lock Solver</span>
+      </a>
+
+      <!-- Freshie Guide (Free) -->
+      <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3194800812" class="cta-button">
+        <span class="button-text">Freshie Guide</span>
+      </a>
+
     </div>
   </section>
+
+  <div id="unlockPlusWrapper" style="text-align:center;">
+    <a href="whitelist.html" id="unlockPlusBtn" class="unlock-plus-button">🔓 Unlock Plus Features</a>
+  </div>
 
   <section class="tip-box">
     <h3>💡 Pro Tip</h3>
@@ -394,26 +520,27 @@
 
   <section id="about" class="about-section">
     <h2>About A-List</h2>
-    <p><strong>A-List is a community-driven hub built by players, for players</strong> — designed to make your ELAN Life
+    <p><strong>A-List is a community-driven hub built by players, for players</strong> — designed to make your ELAN
+      Life
       experience smarter, smoother, and more immersive.</p>
-    <p>What began as a simple idea has grown into a fully-loaded toolkit,
-      <strong>shaped by the voices of our team and our community</strong>. Our Crafting Calculator stands at the center
-      — a feature-rich, constantly evolving tool built from the ground up.
-    </p>
-    <p><strong>A-List runs on passion and teamwork</strong>. We’re not just building tools — we’re living the game
+    <p>What began as a simple idea has grown into a fully-loaded toolkit, <strong>shaped by the voices of our team
+        and
+        our community</strong>. Our Crafting Calculator stands at the center — a feature-rich, constantly evolving
+      tool
+      built from the ground up.</p>
+    <p><strong>A-List runs on passion and teamwork</strong>. We're not just building tools — we're living the game
       alongside you, here to make sure you always have the support and edge to enjoy ELAN to the fullest.</p>
   </section>
 
   <section class="testimonials">
     <h3>🌟 What Players Say</h3>
-    <div class="quote">“The Crafting Calculator saved me hours — can’t play without it.” <span>- Alexa Knox</span></div>
-    <div class="quote">“In all my time on Everon, few match the knowledge and experience The A-List brings.”
-      <span>- Hamish Macbeth</span>
+    <div class="quote">"The Crafting Calculator saved me hours — can't play without it." <span>- Alexa Knox</span>
     </div>
-    <div class="quote">“This hub is better than the official wiki.” <span>- Clark Kent</span></div>
-    <div class="quote">“Is it driving you daft while learning to craft? Then YOU need the A-List Hub”
-      <span>- Chee Masters</span>
-    </div>
+    <div class="quote">"In all my time on Everon, few match the knowledge and experience The A-List brings." <span>-
+        Hamish Macbeth</span></div>
+    <div class="quote">"This hub is better than the official wiki." <span>- Clark Kent</span></div>
+    <div class="quote">"Is it driving you daft while learning to craft? Then YOU need the A-List Hub" <span>- Chee
+        Masters</span></div>
   </section>
 
   <footer id="contact">
@@ -422,8 +549,7 @@
 
   <script>
     const tips = [
-      "Always lock your vehicle with U to prevent theft — even at processors!",
-      "Get the ALICE Medium Backpack early. It holds 13 ores, essential for resource runs.",
+      "Always lock your vehicle to prevent theft!",
       "Combine your backpack and trunk to get more capacity during gathering.",
       "Start at the copper mine north of Montignac for a low-risk, high-return start.",
       "Always smelt ores before selling. Raw ore has no value",
@@ -436,7 +562,7 @@
       "Reach Level 7 Smelting to unlock faster furnace processing — huge time saver.",
       "Pick a profession like Police to earn money, and server reputation.",
       "Always stay in-character. OOC chat is restricted and can ruin immersion.",
-      "Never Combat Log (CL). It’s a serious offense — always RP through situations.",
+      "Never Combat Log (CL). It's a serious offense — always RP through situations.",
       "Use lockers in major towns for secure 200-slot storage. One-time $1M fee.",
       "Helis are expensive and require rare HQ parts. Plan long-term before investing.",
       "Check ammo compatibility using ALIS Hub or weapon guides before crafting mags.",
@@ -444,9 +570,12 @@
       "Follow the New Life Rule (NLR): stay away from your death location for a while.",
       "Track item demand in your phone — timing the market can double your income."
     ];
-
     document.getElementById("dailyTip").textContent = tips[Math.floor(Math.random() * tips.length)];
   </script>
+  <div id="js-version" style="display:none;">v1.0.0</div>
+  <script src="index.js"></script>
+  <script type="module" src="heartbeat.js"></script>
+
 </body>
 
 </html>
