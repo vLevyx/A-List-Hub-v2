@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>So you want to roleplay? - Team ELAN Starter Guide | The A-List Blog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0a0a0a;
+            color: #e5e5e5;
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .back-nav {
+            padding: 2rem 0;
+        }
+
+        .back-link {
+            color: #6366f1;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: #a5b4fc;
+            transform: translateX(-3px);
+        }
+
+        .back-link::before {
+            content: '←';
+            transition: transform 0.2s ease;
+        }
+
+        .back-link:hover::before {
+            transform: translateX(-3px);
+        }
+
+        .article-header {
+            padding: 2rem 0 4rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 3rem;
+        }
+
+        .article-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            color: #8a8a8a;
+        }
+
+        .article-tag {
+            background: rgba(99, 102, 241, 0.1);
+            color: #a5b4fc;
+            padding: 0.35rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .article-date {
+            opacity: 0.7;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #ffffff, #a0a0a0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+
+        .article-tagline {
+            font-size: 1.2rem;
+            color: #b0b0b0;
+            font-weight: 300;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .author-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem 0;
+            color: #8a8a8a;
+            font-size: 0.9rem;
+        }
+
+        .author-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #a5b4fc);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .article-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #e0e0e0;
+        }
+
+        .article-content h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 3rem 0 1.5rem;
+            color: #ffffff;
+            position: relative;
+        }
+
+        .article-content h2::before {
+            content: '';
+            position: absolute;
+            left: -1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 1.5rem;
+            background: linear-gradient(135deg, #6366f1, #a5b4fc);
+            border-radius: 2px;
+        }
+
+        .article-content h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 2.5rem 0 1rem;
+            color: #f0f0f0;
+        }
+
+        .article-content p {
+            margin-bottom: 1.5rem;
+        }
+
+        .article-content ul, .article-content ol {
+            margin: 1.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .article-content li {
+            margin-bottom: 0.8rem;
+            color: #d0d0d0;
+        }
+
+        .article-content strong {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .article-content em {
+            color: #a5b4fc;
+            font-style: italic;
+        }
+
+        .highlight-box {
+            background: rgba(99, 102, 241, 0.05);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .highlight-box::before {
+            content: '💡';
+            position: absolute;
+            top: -12px;
+            left: 1.5rem;
+            background: #0a0a0a;
+            padding: 0 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .controls-section {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .controls-section h3 {
+            margin-top: 0;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            margin: 1rem 0;
+            padding: 0.5rem 0;
+        }
+
+        .control-key {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: 600;
+            margin-right: 1rem;
+            min-width: 2rem;
+            text-align: center;
+        }
+
+        .terms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .term-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .term-title {
+            color: #6366f1;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .article-footer {
+            margin-top: 4rem;
+            padding: 3rem 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-link {
+            color: #6366f1;
+            text-decoration: none;
+            padding: 0.8rem 1.5rem;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .footer-link:hover {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+
+        .signature {
+            font-style: italic;
+            color: #8a8a8a;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+
+            h1 {
+                font-size: 2.2rem;
+            }
+
+            .article-tagline {
+                font-size: 1.1rem;
+            }
+
+            .terms-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-links {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .control-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="back-nav">
+            <a href="#" class="back-link">Back to Articles</a>
+        </nav>
+
+        <header class="article-header">
+            <div class="article-meta">
+                <span class="article-tag">ELAN Life</span>
+                <span class="article-date">June 8, 2025</span>
+            </div>
+            <h1>So you want to roleplay? - Team ELAN Starter Guide</h1>
+            <p class="article-tagline">Welcome to the immersive world of roleplaying on Arma Reforger Team ELAN Arma Life Servers! This guide is designed to help new players dive into the rich and dynamic roleplaying community of Arma Life. From creating your character to interacting with others in the world, here's everything you need to know to start your roleplaying journey.</p>
+            <div class="author-info">
+                <div class="author-avatar">LL</div>
+                <div>
+                    <div>By Levy Lowry</div>
+                    <div>The A-List CEO</div>
+                </div>
+            </div>
+        </header>
+
+        <main class="article-content">
+            <h2>Welcome Apple Picker!</h2>
+            
+            <p><strong>Meeting Franky at the Hotel Bar:</strong> You will be meeting Franky the bartender in the Hotel in front of you. He's your go-to guy here for the moment until you leave the Hotel after the tutorial guide. Listen carefully to what he has to say, he will give you a few tips on how to make money on the island.</p>
+
+            <p><strong>Visit the Tailor:</strong> Before you head outside the hotel, make sure to stop by the tailor's desk to grab a jacket, boots, and a backpack. Opt for the ALICE Medium backpack for maximum storage capacity. You'll need it for your adventures ahead!</p>
+
+            <p><strong>Meet James, the Apple Picker:</strong> Once you have some clothes, look for James, the apple picker. He's easy to spot with his red cap. He'll have your first task ready for you - picking 10 apples from the two trees behind him. To gather the apples, you will need to press "F" until you start gathering and then your character will continue to gather until you stop gathering or walk away.</p>
+
+            <p><strong>Turn Apples into Apple Juice:</strong> After collecting the apples, head to the juicer located at the back of the Hotel (left from the bartender). Press and hold the "F" key to interact with the juicer and transform your apples into apple juice. It takes about 30 seconds.</p>
+
+            <p><strong>Sell the Apple Juice to Franky:</strong> Return to Franky and sell him the apple juice. He will have some more words for you. Unfortunately he will not have money at the moment, but he'll offer something even better - your very own vehicle! (This will be your main source of transportation for now which will be important further down this guide)</p>
+
+            <div class="highlight-box">
+                <p><strong>Pro Tip:</strong> Having a controller to drive vehicles will help, ArmA Reforger makes driving with keyboard and mouse feel very "heavy".</p>
+            </div>
+
+            <p><strong>Retrieving Your Truck:</strong> Outside the Hotel, find the guy standing in the middle of the grass lot. He'll assist you in retrieving your first vehicle. Press "U" to unlock it and "R" or "W" to start the engine and drive forward.</p>
+
+            <p><strong>Explore Everon:</strong> With your new wheels, you're ready to explore Everon! First stop, Montignac city. Be cautious on the roads so you don't crash and watch out for gangs. (Every vehicle and player you see walking around is REAL) Don't forget to grab a map from the general store in the Hotel if you don't have one yet. Press "M" to open the map and set way-points for navigation).</p>
+
+            <p>Embark on your adventure in Everon and make your mark on the Island! If you have any questions or need assistance, don't hesitate to ask fellow players. Enjoy your stay!</p>
+
+            <h2>Terms to Learn</h2>
+            
+            <div class="terms-grid">
+                <div class="term-card">
+                    <div class="term-title">RP - Role Play</div>
+                    <p>The core gameplay mechanic of staying in character.</p>
+                </div>
+                
+                <div class="term-card">
+                    <div class="term-title">CL - Combat Log</div>
+                    <p>Logging out to avoid being killed/arrested/losing gear. This is a ban-able offence.</p>
+                </div>
+                
+                <div class="term-card">
+                    <div class="term-title">NLR - New Life Rule</div>
+                    <p>When you die you may not go within a certain distance of the area you died for a certain amount of time.</p>
+                </div>
+                
+                <div class="term-card">
+                    <div class="term-title">RDM - Random Death Match</div>
+                    <p>Randomly killing a person for no valid RP reason. Often a ban-able offence if adequate evidence is provided.</p>
+                </div>
+                
+                <div class="term-card">
+                    <div class="term-title">VDM - Vehicle Death Match</div>
+                    <p>Using your Vehicle as a weapon either to kill someone or destroy a vehicle/property.</p>
+                </div>
+                
+                <div class="term-card">
+                    <div class="term-title">OOC - Out of Character</div>
+                    <p>Talking about topics not related to the RP world/scenario is forbidden.</p>
+                </div>
+                
+                <div class="term-card">
+                    <div class="term-title">Metagaming</div>
+                    <p>Using external media to gain an advantage in the game. This is prohibited.</p>
+                </div>
+                
+                <div class="term-card">
+                    <div class="term-title">Island</div>
+                    <p>Referring to the different servers that ELAN has to offer. (Island 2 = Server 2, etc.)</p>
+                </div>
+                
+                <div class="term-card">
+                    <div class="term-title">Vacay/Vacation</div>
+                    <p>When a user gets banned from the island/server, other players will joke "Enjoy the vacay."</p>
+                </div>
+            </div>
+
+            <h2>Extra Controls</h2>
+            
+            <div class="controls-section">
+                <div class="control-item">
+                    <span class="control-key">U</span>
+                    <span>Lock/unlock the vehicle you are close to (within 2-3m) as long as you have the key/code</span>
+                </div>
+                
+                <div class="control-item">
+                    <span class="control-key">T</span>
+                    <span>Push-to-Talk default key</span>
+                </div>
+                
+                <div class="control-item">
+                    <span class="control-key">/</span>
+                    <span>Chat in the global/faction/vehicle chat in the top left of the screen</span>
+                </div>
+                
+                <div class="control-item">
+                    <span class="control-key">F1</span>
+                    <span>Take your phone out. Use to text other players, look at market prices, call emergency services</span>
+                </div>
+                
+                <div class="control-item">
+                    <span class="control-key">F2</span>
+                    <span>Open your player menu. View money, profession, reputation, time played and skill information</span>
+                </div>
+                
+                <div class="control-item">
+                    <span class="control-key">F3</span>
+                    <span>Bring up the player action/emote wheel</span>
+                </div>
+                
+                <div class="control-item">
+                    <span class="control-key">`</span>
+                    <span>The "Interaction Key" - Brings up extra interaction controls for objects and players</span>
+                </div>
+            </div>
+
+            <h2>Quit the Basics, Let's Earn Some Money!</h2>
+            
+            <p>There are a few ways to make money legally as a civilian on ELAN. This is either done through apple picking, mining, processing resources, delivering parcels, or even joining the Police force once you have enough time on the island.</p>
+
+            <p>Apple picking is often something you do when starting the game as it necessarily doesn't require a vehicle and yields little money profit. It is not very effective when playing later on in the game.</p>
+
+            <h3>Resources to mine:</h3>
+            <ul>
+                <li>Copper</li>
+                <li>Iron</li>
+                <li>Gold</li>
+                <li>Silver</li>
+            </ul>
+
+            <p>Mining is a step up from apple picking, you get much more money but now you start heading out of the safe zones at the mining rocks which will introduce some possible threats to show up such as gangs.</p>
+
+            <p>For starting out, myself and my team have introduced new players to the <strong>Copper mine</strong>. It is most commonly the basic resource, this will yield the least amount of money (while still being a reasonable amount).</p>
+
+            <div class="highlight-box">
+                <p><strong>Copper Mining Guide:</strong> Copper can be done with a basic vehicle such as the vehicle Franky gave you back at the hotel. You can store 13 copper ore in your trunk, and 13 copper ore in your backpack totaling 26 copper ingots once smelted.</p>
+            </div>
+
+            <p>To start off, retrieve your vehicle from the Montignac garage. (This can be found to the left of the Police department, towards the North side of Montignac. View your map for additional help).</p>
+
+            <p>Next, you will drive North towards the copper mine, you can set a way-point on your map. Turn left on the road before Tyrone and at the end of the road right before it takes another left turn go over the small grass bump and you will see the Copper Mine on your right side.</p>
+
+            <p>From here, you will mine copper and place the ore in your trunk, make sure to keep your truck locked as people can get in and steal your items in the trunk if it is unlocked.</p>
+
+            <p>Once you have completely filled up your truck and backpack inventory get back on the road that is next to the copper mine and go the way you just came from. Halfway up the road, there will be a dirt road on the right-hand side. Take that dirt path all the way down to Gravette, where the Copper Smelter is.</p>
+
+            <p>At the smelter, you will go to the guy standing in between the two fireplace smelters. Press and hold "F" like you did for making apple juice, this will take about another 30 seconds.</p>
+
+            <p><strong>Last step!</strong> Now, drive west on that main road in Gravette, this will take you to the main highway which you will turn left on. Follow this road up to Tyrone, there you will find a Metal Trader on the first dirt path coming into the town on the right side. Drive your truck up to the Medal Trader and sell all your copper ingots.</p>
+
+            <p><strong>Congratulations!</strong> You completed your copper run and made some pretty sweet money off of it. Rinse and repeat this cycle as many times as necessary to earn more money and eventually buy your own fuel or transport truck which will hold more items.</p>
+
+            <p><em>NOTE: This process can take 10-20 minutes depending on how fast you are and your truck capacity.</em></p>
+
+            <h2>In Conclusion</h2>
+
+            <p><strong>Understanding the Setting:</strong> Before you begin, please take a moment to familiarize yourself with the setting the Team ELAN Server Mod takes place. Whether it's finding your way around Montignac, driving to one of the other mining locations, or exploring other professions around Everon. This will be significantly valuable to you in future as this will show you how to move around fast and safely.</p>
+
+            <p><strong>Creating Your Character:</strong> One of the most interesting parts of roleplaying is about bringing your character alive. When thinking about your character's background, personality, motivations, goals (This will be needed if you desire to join Island 3, the white-listed Island). Are they a law-abiding citizen, a hardened criminal, or something in between?</p>
+
+            <p><strong>Community Involvement:</strong> Roleplaying is a collaborative experience, so don't be afraid to interact with other players. Strike conversations up with random people, join groups and participate in other players' events and activities. Creating relationships with other residents of Everon can lead to close friendships and trust when it comes to being out in the world.</p>
+
+            <p><strong>Stay In Character:</strong> Do your best to stay in character as much as possible. This means behaving and speaking as your character would in the given situation. Embrace their flaws and personality to fully immerse yourself in the roleplaying experience. Going out-of-character (OOC) is against the rules.</p>
+
+            <p><strong>Follow Server Rules and Guidelines:</strong> Familiarize yourself with the rules and abide by them at all times. Respect other players, avoid disruptive behavior, and adhere to the server's roleplaying standards to have the most enjoyable playing experience. Or else, perhaps you may see yourself on a flight to your next vacation ;)</p>
+
+            <p><strong>Embrace Creativity and Flexibility:</strong> Roleplaying is all about creativity and improvising. Be open to unexpected encounters with gangs or thief's robbing you and other plot twists, and don't be afraid to adapt to changing situations. Flexibility and roleplaying along can lead to some great moments in the overall experience</p>
+
+            <p><strong>Have Fun:</strong> Above all, remember that roleplaying is meant to be enjoyable. Whether you're solving a murder scene on the Police force, engaging in intense negotiations, or simply exploring the world around you, have fun with it.</p>
+
+            <p>By following these tips, you'll be well-equipped to start your roleplaying adventure on Team ELAN - ArmA Life Servers.</p>
+
+            <p><em>Note: All information and more can be found on the official ELAN Wiki page, YouTube Channel or Discord, links to all of these are down below.</em></p>
+        </main>
+
+        <footer class="article-footer">
+            <div class="footer-links">
+                <a href="https://wiki.team-elan.com" class="footer-link">ELAN Wiki</a>
+                <a href="#" class="footer-link">ELAN YouTube</a>
+                <a href="https://discord.gg" class="footer-link">ELAN Discord</a>
+            </div>
+            
+            <div class="signature">
+                <p><strong>Thank you for reading and enjoy your stay on Everon,</strong></p>
+                <p>- Levy Lowry (The A-List CEO)</p>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

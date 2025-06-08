@@ -9,7 +9,7 @@ const client = createClient(
 const defaultOnCategories = ['Components', 'HQ Components'];
 
 const itemsByCategory = {
-  'Weapons': ['AK-74', 'AKS-74U', 'CheyTac M200 Intervention', 'Colt 1911', 'Desert Eagle', 'M16A2', 'M16A2 - AUTO', 'M21 SWS', 'M249 SAW', 'M416', 'M9', 'MP 43 1C', 'MP5A2', 'MP7A2', 'PKM', 'PM', 'RPK-74',
+  'Weapons': ['AK-74', 'AKS-74U', 'CheyTac M200 Intervention', 'Colt 1911', 'Desert Eagle', 'M16A2', 'M16A2 - AUTO', 'M16 Carbine', 'M21 SWS', 'M249 SAW', 'M416', 'M9', 'MP 43 1C', 'MP5A2', 'MP7A2', 'PKM', 'PM', 'RPK-74',
     'Sa-58P', 'Sa-58V', 'Scar-H', 'SIG MCX', 'SIG MCX SPEAR', 'SSG10A2-Sniper', 'Steyr AUG', 'SR-25 Rifle', 'SVD'],
 
   'Magazines': ['30rnd 9x19 Mag', '8rnd .45 ACP', '9x18mm 8rnd PM Mag', '9x19mm 15rnd M9 Mag', '.300 Blackout Mag', '.338 5rnd FMJ', '.50 AE 7rnd Mag',
@@ -29,7 +29,7 @@ const itemsByCategory = {
   'Helmets': ['PASGT Helmet', 'PASGT Helmet - Camouflaged', 'PASGT Helmet - Camouflaged Netting', 'SPH-4 Helmet', 'SSh-68 Helmet',
     'SSh-68 Helmet - Camouflaged', 'SSh-68 Helmet - Cover', 'SSh-68 Helmet - KZS', 'SSh-68 Helmet - Netting', 'ZSh-5 Helmet'],
 
-  'Clothes': ['ALICE Medium Backpack', 'Bandana', 'Balaclava', 'BDU Blouse', 'BDU Blouse - Rolled-up', 'BDU Trousers', 'Beanie', 'Boonie', 'Cargo Pants', 'Cargo Pants (Colored)',
+  'Clothes': ['ALICE Medium Backpack', 'Bandana', 'Balaclava', 'BDU Blouse', 'BDU Blouse - Rolled-up', 'BDU Trousers', 'Beanie', 'Boonie', 'Cap - All Variants', 'Cargo Pants', 'Cargo Pants (Colored)',
     'Cardigan', 'Classic Shoe', 'CWU-27 Pilot Coveralls', 'Dress', 'Fedora', 'Fisher Hat', 'Flat Cap', 'Half Mask', 'Hunting Vest', 'IIFS Large Combat Field Pack',
     'Jacket', 'Jeans', 'Jeans (Colored)', 'KLMK Coveralls', 'Knit Cap', 'Kolobok Backpack', 'M70 Backpack', 'M70 Cap', 'M70 Parka',
     'M70 Trousers', 'M88 Field Cap', 'M88 Jacket', 'M88 Jacket - Rolled-up', 'M88 Trousers', 'Mask (Medical)', 'Mask (Latex)', 'Mask (Ski)', 'Officer\'s Cap',
@@ -62,10 +62,13 @@ function getAvatarUrl(user) {
 
 // Core authentication function
 async function getAuthenticatedUser() {
+  console.log('[🛂 STEP] getAuthenticatedUser() started');
   try {
     const { data: { session }, error: sessionError } = await client.auth.getSession();
+    console.log('[📶 SESSION]', session);
 
     if (sessionError || !session || !session.user) {
+      console.warn('[❌ SESSION ERROR]', sessionError);
       console.error("Authentication failure:", { sessionError, session });
       window.location.href = '/';
       return null;
@@ -300,18 +303,12 @@ function logout() {
 
 // Main initialization function
 async function loadProfile() {
-  try {
-    const user = await getAuthenticatedUser();
-    if (!user) return;
+  console.log('[🚀 loadProfile()] Called');
+  const user = await getAuthenticatedUser();
+  if (!user) return;
 
-    const discordId = await loadUserProfile(user);
-    if (discordId) {
-      await loadBlueprints(discordId);
-    }
-  } catch (error) {
-    console.error("Profile loading error:", error);
-    // Optionally redirect to login or show error message
-  }
+  const discordId = await loadUserProfile(user); // 👈 Call it here
+  await loadBlueprints(discordId);               // 👈 Now load blueprints using ID
 }
 
 // Navigation handling for SPA behavior
@@ -354,14 +351,31 @@ async function waitForSessionAndLoad(callback) {
   window.location.href = "/";
 }
 
-// Legacy function (kept for compatibility)
-function loadUserData(user) {
-  // This function was empty in the original - keeping for potential future use
-  console.log("loadUserData called with:", user);
-}
-
 // Event listeners - Set up after DOM is ready
-document.addEventListener('DOMContentLoaded', loadProfile);
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('[🚀 INIT] DOM loaded, checking existing session...');
+
+  let tries = 0;
+  let session = null;
+
+  while (tries < 5 && !session) {
+    const result = await client.auth.getSession();
+    session = result.data?.session;
+
+    if (session) break;
+
+    await new Promise(res => setTimeout(res, 400));
+    tries++;
+  }
+
+  if (session?.user) {
+    console.log('[✅ SESSION FOUND] Calling loadProfile()');
+    await loadProfile();
+  } else {
+    console.warn('[❌ NO SESSION FOUND] Redirecting...');
+    window.location.href = "/";
+  }
+});
 
 window.addEventListener('pageshow', async (event) => {
   if (event.persisted || performance.getEntriesByType("navigation")[0]?.type === "back_forward") {

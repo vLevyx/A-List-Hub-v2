@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Arma Reforger Servers Live</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #121212;
+      font-family: 'Outfit', sans-serif;
+      color: #ffffff;
+      min-height: 100vh;
+      padding: 1.5rem;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 25% 25%, rgba(0, 198, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(0, 114, 255, 0.03) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.25rem;
+    }
+
+    .header p {
+      color: #888888;
+      font-size: 1rem;
+      font-weight: 400;
+    }
+
+    .stats-overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+      transition: border-color 0.2s ease;
+    }
+
+    .stat-card:hover {
+      border-color: rgba(0, 198, 255, 0.3);
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #00c6ff;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+      color: #888888;
+      font-size: 0.8rem;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .servers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .server-card {
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 1.5rem;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .server-card:hover {
+      border-color: rgba(0, 198, 255, 0.2);
+    }
+
+    .server-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .server-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 0.25rem;
+    }
+
+    .server-label {
+      color: #666666;
+      font-size: 0.8rem;
+      font-weight: 400;
+    }
+
+    .status-badge {
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .status-online {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .status-offline {
+      background: rgba(102, 102, 102, 0.1);
+      color: #666666;
+      border: 1px solid rgba(102, 102, 102, 0.2);
+    }
+
+    .status-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .server-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .info-label {
+      color: #888888;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 400;
+    }
+
+    .info-value {
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .flag-icon {
+      height: 12px;
+      border-radius: 1px;
+    }
+
+    .player-section {
+      margin-top: 1rem;
+    }
+
+    .player-count {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .player-numbers {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .capacity-label {
+      color: #888888;
+      font-size: 0.8rem;
+      font-weight: 400;
+    }
+
+    .progress-container {
+      position: relative;
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .capacity-low { background: linear-gradient(90deg, #00c6ff, #0072ff); }
+    .capacity-medium { background: linear-gradient(90deg, #0072ff, #00c6ff); }
+    .capacity-high { background: linear-gradient(90deg, #ff6b35, #f7931e); }
+    .capacity-full { background: linear-gradient(90deg, #ff4757, #ff3838); }
+
+    .last-updated {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      color: #888888;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      font-weight: 400;
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 1rem; }
+      .header h1 { font-size: 2rem; }
+      .servers-grid { grid-template-columns: 1fr; }
+      .server-card { padding: 1rem; }
+      .server-info { grid-template-columns: 1fr; }
+      .last-updated { position: static; margin-top: 2rem; text-align: center; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <h1>Arma Reforger</h1>
+    <p>Live Server Status Dashboard</p>
+  </div>
+
+  <div class="stats-overview">
+    <div class="stat-card">
+      <div class="stat-value" id="total-servers">7</div>
+      <div class="stat-label">Total Servers</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="online-servers">--</div>
+      <div class="stat-label">Online</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="total-players">--</div>
+      <div class="stat-label">Total Players</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="avg-capacity">--%</div>
+      <div class="stat-label">Avg Capacity</div>
+    </div>
+  </div>
+
+  <div class="servers-grid" id="servers"></div>
+
+  <div class="last-updated">
+    Last updated: <span id="last-update">--</span>
+  </div>
+
+  <script>
+    const serverIDs = [
+      { id: "27429034", label: "Island 1" },
+      { id: "28035581", label: "Island 2" },
+      { id: "30844316", label: "Island 3" },
+      { id: "31614162", label: "Island 4" },
+      { id: "29675841", label: "Island 5" },
+      { id: "30871980", label: "Island 6" },
+      { id: "33676045", label: "Island 7" }
+    ];
+
+    let serverData = {};
+
+    function getCapacityClass(percentage) {
+      if (percentage <= 25) return 'capacity-low';
+      if (percentage <= 50) return 'capacity-medium';
+      if (percentage <= 75) return 'capacity-high';
+      return 'capacity-full';
+    }
+
+    async function fetchServerData(serverId, label) {
+      try {
+        const res = await fetch(`https://api.battlemetrics.com/servers/${serverId}`);
+        const data = await res.json();
+        const server = data.data.attributes;
+        
+        // Store server data for analytics
+        serverData[serverId] = {
+          name: server.name,
+          status: server.status,
+          players: server.players,
+          maxPlayers: server.maxPlayers,
+          country: server.country,
+          region: server.details?.regionName
+        };
+
+        const div = document.getElementById(`server-${serverId}`);
+        if (!div) return;
+
+        div.querySelector('.server-name').textContent = server.name;
+        
+        // Update status badge
+        const statusBadge = div.querySelector('.status-badge');
+        const isOnline = server.status === 'online';
+        statusBadge.className = `status-badge ${isOnline ? 'status-online' : 'status-offline'}`;
+        statusBadge.innerHTML = `
+          <span class="status-dot"></span>
+          ${isOnline ? 'Online' : 'Offline'}
+        `;
+
+        div.querySelector('.server-players').textContent = `${server.players}/${server.maxPlayers}`;
+
+        // Country & Flag logic
+        const countryCode = server.country?.toLowerCase() || 'un';
+        const region = server.details?.regionName;
+        const countryNames = {
+          us: "United States", ca: "Canada", gb: "United Kingdom", de: "Germany",
+          fr: "France", nl: "Netherlands", au: "Australia", ru: "Russia",
+          se: "Sweden", no: "Norway", fi: "Finland", es: "Spain",
+          it: "Italy", br: "Brazil", un: "Unknown"
+        };
+
+        const fallbackLocation = countryNames[countryCode] || "Unknown";
+        const locationElement = div.querySelector('.server-location');
+        locationElement.innerHTML = `
+          ${region || fallbackLocation}
+          <img src="https://flagcdn.com/h20/${countryCode}.png" alt="${countryCode}" class="flag-icon">
+        `;
+
+        // Enhanced progress bar with capacity indication
+        const percentage = Math.min((server.players / 128) * 100, 100);
+        const progressBar = div.querySelector('.progress-bar');
+        progressBar.style.width = `${percentage}%`;
+        progressBar.className = `progress-bar ${getCapacityClass(percentage)}`;
+
+        // Update capacity label
+        div.querySelector('.capacity-percentage').textContent = `${Math.round(percentage)}% full`;
+
+        updateOverallStats();
+
+      } catch (err) {
+        console.error(`Error fetching data for server ${label}:`, err);
+      }
+    }
+
+    function updateOverallStats() {
+      const servers = Object.values(serverData);
+      const onlineServers = servers.filter(s => s.status === 'online').length;
+      const totalPlayers = servers.reduce((sum, s) => sum + (s.players || 0), 0);
+      const avgCapacity = servers.length > 0 ? 
+        servers.reduce((sum, s) => sum + ((s.players || 0) / 128 * 100), 0) / servers.length : 0;
+
+      document.getElementById('online-servers').textContent = onlineServers;
+      document.getElementById('total-players').textContent = totalPlayers;
+      document.getElementById('avg-capacity').textContent = `${Math.round(avgCapacity)}%`;
+      
+      // Update last updated time
+      document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+    }
+
+    function renderServers() {
+      const container = document.getElementById("servers");
+      serverIDs.forEach(({ id, label }, index) => {
+        const div = document.createElement("div");
+        div.className = "server-card";
+        div.id = `server-${id}`;
+        div.innerHTML = `
+          <div class="server-header">
+            <div>
+              <div class="server-title server-name">Loading...</div>
+              <div class="server-label">${label}</div>
+            </div>
+            <div class="status-badge status-offline">
+              <span class="status-dot"></span>
+              Loading...
+            </div>
+          </div>
+          <div class="server-info">
+            <div class="info-item">
+              <div class="info-label">Players</div>
+              <div class="info-value server-players">--/--</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Location</div>
+              <div class="info-value server-location">--</div>
+            </div>
+          </div>
+          <div class="player-section">
+            <div class="player-count">
+              <span class="capacity-percentage">--%</span>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar capacity-low"></div>
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function updateAllServers() {
+      serverIDs.forEach(({ id, label }) => fetchServerData(id, label));
+    }
+
+    // Initialize
+    renderServers();
+    updateAllServers();
+    setInterval(updateAllServers, 60000);
+  </script>
+  <script type="module" src="heartbeat.js"></script>
+
+</body>
+
+</html>

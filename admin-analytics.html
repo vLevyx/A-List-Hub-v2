@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Analytics Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #121212;
+      color: #f0f0f0;
+      padding: 2rem;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: auto;
+      background: rgba(30, 30, 30, 0.9);
+      border-radius: 1rem;
+      padding: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+      position: relative;
+      transition: margin-right 0.3s ease;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    h1 {
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 2.5rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    h2 {
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    .section {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 1rem;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .section:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      transition: all 0.2s ease;
+    }
+
+    .stat-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateY(-1px);
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #00c6ff;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    th {
+      background: rgba(0, 198, 255, 0.1);
+      padding: 1rem 0.75rem;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: left;
+    }
+
+    td {
+      padding: 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    tr:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    input,
+    select,
+    button {
+      background: #1c1c1c;
+      border: 1px solid #444;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      color: #f0f0f0;
+      font-family: 'Outfit', sans-serif;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: #00c6ff;
+      box-shadow: 0 0 0 2px rgba(0, 198, 255, 0.2);
+    }
+
+    button {
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(0, 198, 255, 0.3);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .user-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .time-filter {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-whitelisted {
+      background: rgba(167, 243, 208, 0.2);
+      color: #a7f3d0;
+      border: 1px solid rgba(167, 243, 208, 0.3);
+    }
+
+    .status-revoked {
+      background: rgba(255, 76, 76, 0.2);
+      color: #ff4c4c;
+      border: 1px solid rgba(255, 76, 76, 0.3);
+    }
+
+    .status-trial {
+      background: rgba(255, 193, 7, 0.2);
+      color: #ffc107;
+      border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .page-path {
+      font-family: 'Courier New', monospace;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.9rem;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      opacity: 0.7;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      opacity: 0.6;
+    }
+
+    .text-gradient {
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .emoji {
+      -webkit-text-fill-color: white !important;
+      color: white !important;
+    }
+
+
+    .back-button {
+      background: none;
+      color: #00c6ff;
+      border: 1px solid #00c6ff;
+      border-radius: 0.4rem;
+      padding: 0.4rem 1rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 1rem;
+      transition: all 0.2s ease;
+    }
+
+    .back-button:hover {
+      background: rgba(0, 198, 255, 0.1);
+      transform: translateX(-2px);
+    }
+
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .user-controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+
+<body>
+  <script defer src="auth.js"></script>
+  <div class="container">
+    <button onclick="history.back()" class="back-button">← Back</button>
+    <h1><span class="text-gradient">Admin Analytics Dashboard</span> <span class="emoji">📊</span></h1>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="total-users">0</div>
+        <div class="stat-label">Active Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="total-sessions">0</div>
+        <div class="stat-label">Total Sessions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="avg-session-time">0m</div>
+        <div class="stat-label">Avg Session Time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="total-pages">0</div>
+        <div class="stat-label">Unique Pages</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="section">
+        <h2><span class="text-gradient">Top Pages by Time Spent</span> <span class="emoji">🏆</span></h2>
+        <div class="controls">
+          <select id="pages-limit">
+            <option value="10">Top 10</option>
+            <option value="15" selected>Top 15</option>
+            <option value="25">Top 25</option>
+          </select>
+        </div>
+        <table id="top-pages-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Page</th>
+              <th>Total Time</th>
+              <th>Sessions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4" class="loading">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2><span class="text-gradient">User Page Analytics</span> <span class="emoji">👤</span></h2>
+        <div class="user-controls">
+          <select id="user-select" class="search-box">
+            <option value="">Select a user...</option>
+          </select>
+          <div class="time-filter">
+            <label>Min time:</label>
+            <input type="number" id="min-time" placeholder="0" min="0" style="width: 80px;">
+            <span>minutes</span>
+          </div>
+          <select id="sort-by">
+            <option value="time">Sort by Time</option>
+            <option value="sessions">Sort by Sessions</option>
+            <option value="page">Sort by Page</option>
+          </select>
+        </div>
+        <div id="user-stats" style="display: none; margin-bottom: 1rem;">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value" id="user-total-time">0m</div>
+              <div class="stat-label">Total Time</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="user-total-sessions">0</div>
+              <div class="stat-label">Total Sessions</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="user-unique-pages">0</div>
+              <div class="stat-label">Unique Pages</div>
+            </div>
+          </div>
+        </div>
+        <table id="user-pages-table">
+          <thead>
+            <tr>
+              <th>Page</th>
+              <th>Sessions</th>
+              <th>Total Time</th>
+              <th>Avg Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4" class="empty-state">Select a user to view their page analytics</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="text-gradient">Admin Audit Logs</span> <span class="emoji">📝</span></h2>
+      <div class="controls">
+        <input id="filter-admin" placeholder="Admin name" class="search-box" />
+        <input id="filter-action" placeholder="Action" class="search-box" />
+        <input id="filter-desc" placeholder="Description" class="search-box" />
+        <input id="filter-target" placeholder="Target Username" class="search-box" />
+        <select id="logs-limit">
+          <option value="15">15 per page</option>
+          <option value="25">25 per page</option>
+          <option value="50">50 per page</option>
+        </select>
+      </div>
+      <table id="audit-log-table">
+        <thead>
+          <tr>
+            <th>Admin</th>
+            <th>Action</th>
+            <th>Description</th>
+            <th>Target</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="5" class="loading">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination">
+        <button id="prev-log">← Previous</button>
+        <span id="page-info">Page 1</span>
+        <button id="next-log">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6';
+    const client = createClient("https://dsexkdjxmhgqahrlkvax.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzZXhrZGp4bWhncWFocmxrdmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0ODAxNTAsImV4cCI6MjA2NDA1NjE1MH0.RW_ROpcNUNZaK9xGH2OFwHBSmFsGrLj-yi3LWCPBCvA");
+
+    let logsPage = 0;
+    let logsLimit = 15;
+    let allPageData = [];
+    let allUsers = {};
+
+    // Enhanced page sessions fetching with statistics
+    async function fetchPageSessions() {
+      try {
+        const { data, error } = await client
+          .from("page_sessions")
+          .select("page_path, time_spent_seconds, username")
+          .not("time_spent_seconds", "is", null);
+
+        if (error) throw error;
+
+        allPageData = data;
+        const totals = {};
+        const users = {};
+        const pageCounts = {};
+
+        data.forEach(row => {
+          // Page totals
+          if (!totals[row.page_path]) {
+            totals[row.page_path] = 0;
+            pageCounts[row.page_path] = 0;
+          }
+          totals[row.page_path] += row.time_spent_seconds;
+          pageCounts[row.page_path]++;
+
+          // User data
+          if (row.username) {
+            if (!users[row.username]) users[row.username] = {};
+            if (!users[row.username][row.page_path]) users[row.username][row.page_path] = [];
+            users[row.username][row.page_path].push(row.time_spent_seconds);
+          }
+        });
+
+        allUsers = users;
+        updateStatistics(data, users);
+        renderTopPages(totals, pageCounts);
+        populateUserSelect(users);
+
+      } catch (error) {
+        console.error('Error fetching page sessions:', error);
+      }
+    }
+
+    function updateStatistics(data, users) {
+      const totalUsers = Object.keys(users).length;
+      const totalSessions = data.length;
+      const totalTime = data.reduce((sum, row) => sum + row.time_spent_seconds, 0);
+      const avgSessionTime = totalSessions > 0 ? totalTime / totalSessions : 0;
+      const uniquePages = new Set(data.map(row => row.page_path)).size;
+
+      document.getElementById('total-users').textContent = totalUsers;
+      document.getElementById('total-sessions').textContent = totalSessions;
+      document.getElementById('avg-session-time').textContent = `${(avgSessionTime / 60).toFixed(1)}m`;
+      document.getElementById('total-pages').textContent = uniquePages;
+    }
+
+    function renderTopPages(totals, pageCounts) {
+      const limit = parseInt(document.getElementById('pages-limit').value);
+      const sorted = Object.entries(totals)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit);
+
+      const tbody = document.querySelector("#top-pages-table tbody");
+      tbody.innerHTML = sorted.map(([page, time], index) => `
+        <tr>
+          <td><strong>#${index + 1}</strong></td>
+          <td><span class="page-path">${page}</span></td>
+          <td><strong>${(time / 60).toFixed(1)} min</strong></td>
+          <td>${pageCounts[page]} sessions</td>
+        </tr>
+      `).join("");
+    }
+
+    function populateUserSelect(users) {
+      const select = document.getElementById('user-select');
+      const currentValue = select.value;
+
+      select.innerHTML = '<option value="">Select a user...</option>' +
+        Object.keys(users)
+          .sort()
+          .map(username => `<option value="${username}">${username}</option>`)
+          .join("");
+
+      if (currentValue && users[currentValue]) {
+        select.value = currentValue;
+      }
+    }
+
+    function renderUserTable(userData, username) {
+      const userStats = document.getElementById('user-stats');
+      const tbody = document.querySelector("#user-pages-table tbody");
+
+      if (!userData || !username) {
+        userStats.style.display = 'none';
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Select a user to view their page analytics</td></tr>';
+        return;
+      }
+
+      // Calculate user statistics
+      const entries = Object.entries(userData);
+      const totalSessions = entries.reduce((sum, [, sessions]) => sum + sessions.length, 0);
+      const totalTime = entries.reduce((sum, [, sessions]) => sum + sessions.reduce((s, t) => s + t, 0), 0);
+      const uniquePages = entries.length;
+
+      // Update user stats display
+      document.getElementById('user-total-time').textContent = `${(totalTime / 60).toFixed(1)}m`;
+      document.getElementById('user-total-sessions').textContent = totalSessions;
+      document.getElementById('user-unique-pages').textContent = uniquePages;
+      userStats.style.display = 'block';
+
+      // Filter and sort data
+      const minTime = parseFloat(document.getElementById('min-time').value) || 0;
+      const sortBy = document.getElementById('sort-by').value;
+
+      let filteredEntries = entries
+        .map(([page, sessions]) => ({
+          page,
+          sessions: sessions.length,
+          totalTime: sessions.reduce((sum, time) => sum + time, 0),
+          avgTime: sessions.reduce((sum, time) => sum + time, 0) / sessions.length
+        }))
+        .filter(entry => (entry.totalTime / 60) >= minTime);
+
+      // Sort data
+      filteredEntries.sort((a, b) => {
+        switch (sortBy) {
+          case 'sessions': return b.sessions - a.sessions;
+          case 'page': return a.page.localeCompare(b.page);
+          case 'time':
+          default: return b.totalTime - a.totalTime;
+        }
+      });
+
+      tbody.innerHTML = filteredEntries.length > 0
+        ? filteredEntries.map(entry => `
+            <tr>
+              <td><span class="page-path">${entry.page}</span></td>
+              <td>${entry.sessions}</td>
+              <td><strong>${(entry.totalTime / 60).toFixed(1)} min</strong></td>
+              <td>${(entry.avgTime / 60).toFixed(1)} min</td>
+            </tr>
+          `).join("")
+        : '<tr><td colspan="4" class="empty-state">No data matches the current filters</td></tr>';
+    }
+
+    async function fetchAuditLogs() {
+      try {
+        logsLimit = parseInt(document.getElementById('logs-limit').value);
+
+        const { data: logs, error } = await client
+          .from("admin_logs")
+          .select("*, target_discord_id")
+          .order("created_at", { ascending: false })
+          .range(logsPage * logsLimit, logsPage * logsLimit + logsLimit - 1);
+
+        if (error) throw error;
+
+        const discordIds = [...new Set(logs.map(log => log.target_discord_id).filter(Boolean))];
+        const { data: users } = await client
+          .from("users")
+          .select("discord_id, username")
+          .in("discord_id", discordIds);
+
+        const idToUsername = Object.fromEntries(users.map(u => [u.discord_id, u.username]));
+
+        const filters = {
+          admin: document.getElementById('filter-admin').value.toLowerCase(),
+          action: document.getElementById('filter-action').value.toLowerCase(),
+          desc: document.getElementById('filter-desc').value.toLowerCase(),
+          target: document.getElementById('filter-target').value.toLowerCase(),
+        };
+
+        const filtered = logs.filter(log =>
+          (!filters.admin || log.admin_name?.toLowerCase().includes(filters.admin)) &&
+          (!filters.action || log.action?.toLowerCase().includes(filters.action)) &&
+          (!filters.desc || log.description?.toLowerCase().includes(filters.desc)) &&
+          (!filters.target || idToUsername[log.target_discord_id]?.toLowerCase().includes(filters.target))
+        );
+
+        const tbody = document.querySelector("#audit-log-table tbody");
+        tbody.innerHTML = filtered.length > 0
+          ? filtered.map(log => {
+            const statusClass = getStatusClass(log.action);
+            return `
+                <tr>
+                  <td><strong>${log.admin_name}</strong></td>
+                  <td><span class="status-badge ${statusClass}">${log.action}</span></td>
+                  <td>${log.description}</td>
+                  <td>${idToUsername[log.target_discord_id] || 'N/A'}</td>
+                  <td>${new Date(log.created_at).toLocaleString()}</td>
+                </tr>
+              `;
+          }).join("")
+          : '<tr><td colspan="5" class="empty-state">No logs match the current filters</td></tr>';
+
+        // Update pagination
+        document.getElementById('page-info').textContent = `Page ${logsPage + 1}`;
+        document.getElementById('prev-log').disabled = logsPage === 0;
+        document.getElementById('next-log').disabled = filtered.length < logsLimit;
+
+      } catch (error) {
+        console.error('Error fetching audit logs:', error);
+      }
+    }
+
+    function getStatusClass(action) {
+      const actionLower = action?.toLowerCase() || '';
+      if (actionLower.includes('whitelist')) return 'status-whitelisted';
+      if (actionLower.includes('revoke') || actionLower.includes('ban')) return 'status-revoked';
+      if (actionLower.includes('trial')) return 'status-trial';
+      return '';
+    }
+
+    // Event listeners
+    document.getElementById('user-select').addEventListener('change', (e) => {
+      const username = e.target.value;
+      renderUserTable(allUsers[username], username);
+    });
+
+    document.getElementById('min-time').addEventListener('input', () => {
+      const username = document.getElementById('user-select').value;
+      if (username) renderUserTable(allUsers[username], username);
+    });
+
+    document.getElementById('sort-by').addEventListener('change', () => {
+      const username = document.getElementById('user-select').value;
+      if (username) renderUserTable(allUsers[username], username);
+    });
+
+    document.getElementById('pages-limit').addEventListener('change', () => {
+      fetchPageSessions();
+    });
+
+    document.getElementById('logs-limit').addEventListener('change', () => {
+      logsPage = 0;
+      fetchAuditLogs();
+    });
+
+    // Filter inputs
+    document.querySelectorAll('#filter-admin, #filter-action, #filter-desc, #filter-target').forEach(input => {
+      input.addEventListener('input', () => {
+        logsPage = 0;
+        fetchAuditLogs();
+      });
+    });
+
+    // Pagination
+    document.getElementById('prev-log').addEventListener('click', () => {
+      if (logsPage > 0) {
+        logsPage--;
+        fetchAuditLogs();
+      }
+    });
+
+    document.getElementById('next-log').addEventListener('click', () => {
+      logsPage++;
+      fetchAuditLogs();
+    });
+
+    // Real-time updates
+    client.channel('realtime:page_sessions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'page_sessions' }, () => fetchPageSessions())
+      .subscribe();
+
+    client.channel('realtime:admin_logs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_logs' }, () => fetchAuditLogs())
+      .subscribe();
+
+    // Initialize
+    fetchPageSessions();
+    fetchAuditLogs();
+  </script>
+  <script type="module" src="heartbeat.js"></script>
+</body>
+
+</html>

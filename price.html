@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Price Planner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: #121212;
+      color: #e5e5e5;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      color: #a0a0a0;
+      font-size: 1.1rem;
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    .card h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: #00c6ff;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #e5e5e5;
+    }
+
+    .form-group select,
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      background-color: #2c2c2c;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: #e5e5e5;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .form-group select:focus,
+    .form-group input:focus {
+      outline: none;
+      border-color: #00c6ff;
+      box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.2);
+    }
+
+    .multiplier-container {
+      position: relative;
+    }
+
+    .multiplier-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .multiplier-value {
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .multiplier-status {
+      font-size: 0.9rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .status-base {
+      background: rgba(255, 193, 7, 0.2);
+      color: #ffc107;
+      border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+
+    .status-lower {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .status-higher {
+      background: rgba(255, 76, 76, 0.2);
+      color: #ff4c4c;
+      border: 1px solid rgba(255, 76, 76, 0.3);
+    }
+
+    .slider {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      outline: none;
+      appearance: none;
+    }
+
+    .slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #00c6ff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 198, 255, 0.4);
+    }
+
+    .slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      background: #00c6ff;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 8px rgba(0, 198, 255, 0.4);
+    }
+
+    .btn {
+      padding: 0.875rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      color: white;
+      box-shadow: 0 4px 15px rgba(0, 198, 255, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 198, 255, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e5e5e5;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-small {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+
+    .result-container {
+      grid-column: 1 / -1;
+      margin-top: 2rem;
+    }
+
+    .result {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    .result h3 {
+      color: #00c6ff;
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+
+    .cost-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .cost-item {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .cost-item .label {
+      color: #a0a0a0;
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .cost-item .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #10b981;
+    }
+
+    .breakdown {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    .breakdown h4 {
+      color: #ffc107;
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+    }
+
+    .breakdown ul {
+      list-style: none;
+    }
+
+    .breakdown li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .breakdown li:last-child {
+      border-bottom: none;
+    }
+
+    .material-name {
+      color: #e5e5e5;
+    }
+
+    .material-cost {
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .settings-panel {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 400px;
+      height: 100vh;
+      background: rgba(18, 18, 18, 0.95);
+      backdrop-filter: blur(20px);
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      transition: right 0.3s ease;
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .settings-panel.open {
+      right: 0;
+    }
+
+    .settings-header {
+      padding: 2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .settings-header h3 {
+      color: #00c6ff;
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .settings-content {
+      padding: 2rem;
+    }
+
+    .material-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .material-item:last-child {
+      border-bottom: none;
+    }
+
+    .material-item label {
+      color: #e5e5e5;
+      font-weight: 500;
+      flex: 1;
+    }
+
+    .material-item input {
+      width: 100px;
+      padding: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      color: #e5e5e5;
+      text-align: left;
+    }
+
+    .settings-actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .settings-toggle {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      z-index: 1001;
+      background: rgba(0, 153, 255, 0.2);
+      border: 1px solid rgba(0, 198, 255, 0.3);
+      color: #00c6ff;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .settings-toggle:hover {
+      background: rgba(0, 198, 255, 0.3);
+      transform: rotate(50deg);
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .component-section {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 2rem;
+      margin-top: 2rem;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 1rem;
+      align-items: end;
+    }
+
+    .input-group .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+
+    .price-input {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      overflow: hidden;
+      width: 140px;
+    }
+
+    .price-prefix {
+      padding: 0.5rem;
+      color: #e5e5e5;
+      background: rgba(255, 255, 255, 0.05);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 1rem;
+    }
+
+    .price-input input {
+      flex: 1;
+      padding: 0.5rem;
+      background: transparent;
+      border: none;
+      color: #e5e5e5;
+      font-size: 1rem;
+      text-align: left;
+    }
+
+    /* Hide number input arrows in WebKit browsers (Chrome, Safari, Edge) */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* Hide number input arrows in Firefox */
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+
+
+    @media (max-width: 640px) {
+      .input-group {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .settings-panel {
+        width: 100%;
+        right: -100%;
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+
+<body>
+  <script defer src="auth.js"></script>
+  <div class="overlay" id="overlay"></div>
+
+  <button class="settings-toggle" id="settingsToggle" title="Material Price Settings">
+    ⚙️
+  </button>
+
+  <div class="settings-panel" id="settingsPanel">
+    <div class="settings-header">
+      <h3>Material Price Settings</h3>
+      <p style="color: #a0a0a0;">Customize raw material prices</p>
+    </div>
+    <div class="settings-content">
+      <div id="materialPrices"></div>
+      <div class="settings-actions">
+        <button class="btn btn-primary btn-small" onclick="applyPrices()">APPLY</button>
+        <button class="btn btn-secondary btn-small" onclick="resetPrices()">DEFAULT</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <h1>Price Planner</h1>
+      <p>Estimate item value through raw material analysis.</p>
+    </div>
+
+    <div class="main-content">
+      <div class="card">
+        <h2>Item Calculator</h2>
+
+        <div class="form-group">
+          <label for="categorySelect">Filter by Category</label>
+          <select id="categorySelect">
+            <option value="All">All Categories</option>
+            <option value="Weapons">Weapons</option>
+            <option value="Magazines">Magazines</option>
+            <option value="Attachments">Attachments</option>
+            <option value="Vehicles">Vehicles</option>
+            <option value="Vests">Vests</option>
+            <option value="Helmets">Helmets</option>
+            <option value="Clothes">Clothes</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="itemSelect">Select Item</label>
+          <select id="itemSelect">
+            <option value="">Choose an item...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="itemQuantity">Quantity</label>
+          <input type="number" id="itemQuantity" value="1" min="1">
+        </div>
+
+        <div class="form-group multiplier-container">
+          <div class="multiplier-info">
+            <label>Price Multiplier</label>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+              <span class="multiplier-value" id="multiplierValue">100%</span>
+              <span class="multiplier-status status-base" id="multiplierStatus">Base Price</span>
+            </div>
+          </div>
+          <input type="range" class="slider" id="priceMultiplier" min="0" max="200" value="100">
+        </div>
+
+        <div class="form-group">
+          <label for="timeSpent">Time Spent (hours)</label>
+          <input type="number" id="timeSpent" step="0.1" placeholder="e.g., 1.5">
+        </div>
+
+        <div class="form-group">
+          <label for="hourlyRate">Hourly Rate ($)</label>
+          <input type="number" id="hourlyRate" step="1" placeholder="e.g., 2000">
+        </div>
+
+        <button class="btn btn-primary" onclick="calculateCost()" style="width: 100%;">
+          Calculate Item Cost
+        </button>
+      </div>
+
+      <div class="card">
+        <h2>Component Calculator</h2>
+
+        <div class="input-group">
+          <div class="form-group">
+            <label for="componentSelect">Select Component</label>
+            <select id="componentSelect">
+              <option value="">Choose component...</option>
+            </select>
+          </div>
+          <div class="form-group" style="min-width: 120px;">
+            <label for="componentQty">Quantity</label>
+            <input type="number" id="componentQty" placeholder="Qty" min="1" value="1">
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="calculateComponentOnly()" style="width: 100%; margin-top: 1rem;">
+          Calculate Component Cost
+        </button>
+      </div>
+    </div>
+
+    <div class="result-container">
+      <div id="result" class="result" style="display: none;">
+        <!-- Results will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const rawMaterialPrices = {
+      'Sand': 2000, 'Copper Ingot': 2200, 'Iron Ingot': 2600, 'Silver Ingot': 2800,
+      'Gold Ingot': 3000, 'Wooden Plank': 2800, 'Firewood': 2800, 'Charcoal': 2800,
+      'Fabric': 3500, 'Polyester': 3500, 'Petrol': 4250, 'Special Rotor': 20000000, 'Special Gun Barrel': 2500000
+    };
+
+    const componentRecipes = {
+      'Ammo': { 'Iron Ingot': 1, 'Charcoal': 1 },
+      'Attachment Part': { 'Copper Ingot': 2, 'Silver Ingot': 1 },
+      'Cloth': { 'Fabric': 1, 'Polyester': 1 },
+      'Component': { 'Iron Ingot': 1, 'Copper Ingot': 1 },
+      'Engine Part': { 'Iron Ingot': 1, 'Copper Ingot': 1, 'Petrol': 1 },
+      'Interior Part': { 'Fabric': 2, 'Polyester': 2 },
+      'Iron Plate': { 'Iron Ingot': 1, 'Fabric': 1, 'Polyester': 1 },
+      'Kevlar': { 'Iron Plate': 1, 'Iron Ingot': 20 },
+      'Mechanical Component': { 'Iron Ingot': 2, 'Copper Ingot': 2 },
+      'Rotor': { 'Charcoal': 1, 'Polyester': 1 },
+      'Stabilizer': { 'Iron Ingot': 2, 'Gold Ingot': 1 },
+      'Tempered Glass': { 'Sand': 2, 'Polyester': 1 },
+      'Weapon Part': { 'Iron Ingot': 1, 'Copper Ingot': 1 },
+      'Ammo (HQ)': { 'Ammo': 3, 'Petrol': 1 },
+      'Attachment Part (HQ)': { 'Attachment Part': 3, 'Wooden Plank': 15 },
+      'Component (HQ)': { 'Component': 2, 'Gold Ingot': 15 },
+      'Engine Part (HQ)': { 'Engine Part': 9, 'Copper Ingot': 45, 'Petrol': 45 },
+      'Interior Part (HQ)': { 'Interior Part': 9, 'Wooden Plank': 45 },
+      'Mechanical Component (HQ)': { 'Mechanical Component': 9, 'Gold Ingot': 45 },
+      'Rotor (HQ)': { 'Rotor': 9, 'Silver Ingot': 30 },
+      'Stabilizer (HQ)': { 'Stabilizer': 3, 'Polyester': 15 },
+      'Weapon Part (HQ)': { 'Weapon Part': 3, 'Iron Ingot': 15, 'Copper Ingot': 15 },
+      'Special Rotor': { 'Special Rotor': 1 },
+      'Special Gun Barrel': { 'Special Gun Barrel': 1 }
+    };
+
+    const itemData = {
+      'Weapons': {
+        'AK-74': {
+          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+        },
+        'AKS-74U': {
+          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+        },
+        'CheyTac M200 Intervention': {
+          'HQ': { 'Weapon Part (HQ)': 8, 'Stabilizer (HQ)': 8, 'Attachment Part (HQ)': 10, 'Special Gun Barrel': 1 }
+        },
+        'Colt 1911': {
+          'Non-HQ': { 'Weapon Part': 5, 'Stabilizer': 3, 'Attachment Part': 3 }
+        },
+        'Desert Eagle': {
+          'HQ': { 'Weapon Part (HQ)': 1, 'Stabilizer (HQ)': 1, 'Attachment Part (HQ)': 2 }
+        },
+        'M16 Carbine': {
+          'Non-HQ': { 'Weapon Part': 39, 'Stabilizer': 21, 'Attachment Part': 24 }
+        },
+        'M16A2': {
+          'Non-HQ': { 'Weapon Part': 27, 'Stabilizer': 15, 'Attachment Part': 17 }
+        },
+        'M16A2 - AUTO': {
+          'Non-HQ': { 'Weapon Part': 39, 'Stabilizer': 21, 'Attachment Part': 24 }
+        },
+        'M21 SWS': {
+          'Non-HQ': { 'Weapon Part': 39, 'Stabilizer': 21, 'Attachment Part': 24 }
+        },
+        'M249 SAW': {
+          'HQ': { 'Weapon Part (HQ)': 13, 'Stabilizer (HQ)': 13, 'Attachment Part (HQ)': 15, 'Special Gun Barrel': 1 }
+        },
+        'M416': {
+          'Non-HQ': { 'Weapon Part': 43, 'Stabilizer': 23, 'Attachment Part': 26 }
+        },
+        'M9': {
+          'Non-HQ': { 'Weapon Part': 5, 'Stabilizer': 3, 'Attachment Part': 3 }
+        },
+        'MP 43 1C': {
+          'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 2 }
+        },
+        'MP5A2': {
+          'Non-HQ': { 'Weapon Part': 11, 'Stabilizer': 6, 'Attachment Part': 7 }
+        },
+        'MP7A2': {
+          'Non-HQ': { 'Weapon Part': 15, 'Stabilizer': 8, 'Attachment Part': 9 }
+        },
+        'PKM': {
+          'HQ': { 'Weapon Part (HQ)': 19, 'Stabilizer (HQ)': 19, 'Attachment Part (HQ)': 23, 'Special Gun Barrel': 1 }
+        },
+        'PM': {
+          'Non-HQ': { 'Weapon Part': 4, 'Stabilizer': 2, 'Attachment Part': 2 }
+        },
+        'RPK-74': {
+          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 4 }
+        },
+        'SR-25 Rifle': {
+          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 4 }
+        },
+        'SSG10A2-Sniper': {
+          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+        },
+        'Sa-58P': {
+          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+        },
+        'Sa-58V': {
+          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+        },
+        'Scar-H': {
+          'HQ': { 'Weapon Part (HQ)': 4, 'Stabilizer (HQ)': 4, 'Attachment Part (HQ)': 5 }
+        },
+        'SIG MCX': {
+          'Non-HQ': { 'Weapon Part': 55, 'Stabilizer': 30, 'Attachment Part': 34 }
+        },
+        'SIG MCX SPEAR': {
+          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 4 }
+        },
+        'SVD': {
+          'HQ': { 'Weapon Part (HQ)': 6, 'Stabilizer (HQ)': 6, 'Attachment Part (HQ)': 7 }
+        },
+        'Steyr AUG': {
+          'Non-HQ': { 'Weapon Part': 51, 'Stabilizer': 28, 'Attachment Part': 31 }
+        }
+      },
+      'Magazines': {
+        '.300 Blackout Mag': {
+          'Non-HQ': { 'Ammo': 2 }
+        },
+        '.338 5rnd FMJ': {
+          'Non-HQ': { 'Ammo': 2 }
+        },
+        '.50 AE 7rnd Mag': {
+          'HQ': { 'Ammo (HQ)': 2 }
+        },
+        '12/70 7mm Buckshot': {
+          'Non-HQ': { 'Ammo': 1 }
+        },
+        '30rnd 9x19 Mag': {
+          'Non-HQ': { 'Ammo': 1 }
+        },
+        '4.6x40 40rnd Mag': {
+          'Non-HQ': { 'Ammo': 1 }
+        },
+        '7Rnd M200 Magazine': {
+          'HQ': { 'Ammo (HQ)': 3 }
+        },
+        '7.62x39mm 30rnd Sa-58 Mag': {
+          'Non-HQ': { 'Ammo': 1 }
+        },
+        '7.62x51mm 20rnd M14 Mag': {
+          'Non-HQ': { 'Ammo': 1 }
+        },
+        '7.62x51mm 30rnd Mag': {
+          'Non-HQ': { 'Ammo': 1 }
+        },
+        'SR25 7.62x51mm 20rnd': {
+          'HQ': { 'Ammo (HQ)': 1 }
+        },
+        '7.62x54mmR 10rnd SVD Mag': {
+          'HQ': { 'Ammo (HQ)': 1 }
+        },
+        '8rnd .45 ACP': {
+          'Non-HQ': { 'Ammo': 1 }
+        },
+        '9x18mm 8rnd PM Mag': {
+          'Non-HQ': { 'Ammo': 1 }
+        },
+        '9x19mm 15rnd M9 Mag': {
+          'Non-HQ': { 'Ammo': 1 }
+        },
+        '100rnd PK Belt': {
+          'Non-HQ': { 'Ammo': 1 }
+        },
+        '5.56x45mm 200rnd M249 Belt': {
+          'HQ': { 'Ammo (HQ)': 15 }
+        },
+        '5.56x45mm 30rnd AUG Mag': {
+          'Non-HQ': { 'Ammo': 1 }
+        },
+        '5.56x45mm 30rnd STANAG Mag': {
+          'Non-HQ': { 'Ammo': 1 }
+        },
+        '5.45x39mm 30rnd AK Mag': {
+          'Non-HQ': { 'Ammo': 2 }
+        },
+        '5.45x39mm 45rnd RPK-74 Tracer Mag': {
+          'HQ': { 'Ammo (HQ)': 1 }
+        },
+        '7.62x51mm FMJ': {
+          'HQ': { 'Ammo (HQ)': 1 }
+        },
+        '7.62x54mmR 100rnd PK Belt': {
+          'HQ': { 'Ammo (HQ)': 15 }
+        },
+        '7.62x54mmR 10rnd SVD Mag': {
+          'HQ': { 'Ammo (HQ)': 1 }
+        },
+        'SPEAR 6.8x51 25rnd': {
+          'HQ': { 'Ammo (HQ)': 1 }
+        }
+      },
+      'Attachments': {
+        '4x20 Carry Handle Scope': {
+          'Non-HQ': { 'Component': 41, 'Tempered Glass': 18 }
+        },
+        '4.7mm FlashHider': {
+          'Non-HQ': { 'Component': 1 }
+        },
+        '6.8x51mm FlashHider': {
+          'Non-HQ': { 'Component': 2, 'Tempered Glass': 1 }
+        },
+        '6P20 Muzzle Brake': {
+          'Non-HQ': { 'Component': 2, 'Tempered Glass': 1 }
+        },
+        '6P26 Flash Hider': {
+          'Non-HQ': { 'Component': 2, 'Tempered Glass': 1 }
+        },
+        '7.62x51mm FlashHider': {
+          'Non-HQ': { 'Component': 3, 'Tempered Glass': 1 }
+        },
+        'A2 Flash Hider': {
+          'Non-HQ': { 'Component': 2, 'Tempered Glass': 1 }
+        },
+        'ART II Scope': {
+          'Non-HQ': { 'Component': 2, 'Tempered Glass': 1 }
+        },
+        'Carry Handle Red-Dot-Sight': {
+          'Non-HQ': { 'Component': 5, 'Tempered Glass': 2 }
+        },
+        'EOTECH XPS3': {
+          'Non-HQ': { 'Component': 2, 'Tempered Glass': 1 }
+        },
+        'Elcan Specter': {
+          'Non-HQ': { 'Component': 11, 'Tempered Glass': 5 }
+        },
+        'Leupold VX-6': {
+          'Non-HQ': { 'Component': 17, 'Tempered Glass': 8 }
+        },
+        'PSO-1 Scope': {
+          'Non-HQ': { 'Component': 4, 'Tempered Glass': 1 }
+        },
+        'Reflex Scope': {
+          'Non-HQ': { 'Component': 2, 'Tempered Glass': 1 }
+        }
+      },
+      'Vehicles': {
+        'M1025 Light Armoured Vehicle': {
+          'Non-HQ': { 'Mechanical Component': 9, 'Interior Part': 5, 'Engine Part': 9 }
+        },
+        'M151A2 Off-Road': {
+          'Non-HQ': { 'Mechanical Component': 1, 'Engine Part': 1 }
+        },
+        'M151A2 Off-Road Open Top': {
+          'Non-HQ': { 'Mechanical Component': 1, 'Engine Part': 1 }
+        },
+        'M923A1 Fuel Truck': {
+          'HQ': { 'Mechanical Component (HQ)': 1, 'Interior Part (HQ)': 1, 'Engine Part (HQ)': 1 }
+        },
+        'M923A1 Transport Truck': {
+          'Non-HQ': { 'Mechanical Component': 31, 'Interior Part': 19, 'Engine Part': 31 }
+        },
+        'M923A1 Transport Truck - Canopy': {
+          'HQ': { 'Mechanical Component (HQ)': 2, 'Interior Part (HQ)': 2, 'Engine Part (HQ)': 1 }
+        },
+        'M998 Light Utility Vehicle': {
+          'Non-HQ': { 'Mechanical Component': 5, 'Interior Part': 3, 'Engine Part': 5 }
+        },
+        'M998 Light Utility Vehicle - Canopy': {
+          'Non-HQ': { 'Mechanical Component': 6, 'Interior Part': 4, 'Engine Part': 4 }
+        },
+        'Mi-8MT Transport Helicopter': {
+          'HQ': { 'Mechanical Component (HQ)': 30, 'Interior Part (HQ)': 27, 'Engine Part (HQ)': 19, 'Rotor (HQ)': 48, 'Special Rotor': 1 }
+        },
+        'Pickup-Truck': {
+          'Non-HQ': { 'Mechanical Component': 19, 'Interior Part': 11, 'Engine Part': 19 }
+        },
+        'S105 Car': {
+          'Non-HQ': { 'Mechanical Component': 3, 'Interior Part': 2, 'Engine Part': 3 }
+        },
+        'S1203 - Laboratory': {
+          'Non-HQ': { 'Mechanical Component': 41, 'Interior Part': 25, 'Engine Part': 41 }
+        },
+        'S1203 Minibus': {
+          'Non-HQ': { 'Mechanical Component': 7, 'Interior Part': 4, 'Engine Part': 7 }
+        },
+        'UAZ-452 Off-road': {
+          'Non-HQ': { 'Mechanical Component': 3, 'Interior Part': 2, 'Engine Part': 3 }
+        },
+        'UAZ-452 Off-road - Laboratory': {
+          'HQ': { 'Mechanical Component (HQ)': 4, 'Interior Part (HQ)': 3, 'Engine Part (HQ)': 2 }
+        },
+        'UAZ-469 Off-road': {
+          'Non-HQ': { 'Mechanical Component': 1, 'Interior Part': 1, 'Engine Part': 1 }
+        },
+        'UAZ-469 Off-road - Open Top': {
+          'Non-HQ': { 'Mechanical Component': 1, 'Interior Part': 1, 'Engine Part': 1 }
+        },
+        'UH-1H Transport Helicopter': {
+          'HQ': { 'Mechanical Component (HQ)': 19, 'Interior Part (HQ)': 17, 'Engine Part (HQ)': 12, 'Rotor (HQ)': 30, 'Special Rotor': 1 }
+        },
+        'Ural (Device)': {
+          'HQ': { 'Mechanical Component (HQ)': 29, 'Interior Part (HQ)': 26, 'Engine Part (HQ)': 18 }
+        },
+        'Ural-4320 Fuel Truck': {
+          'HQ': { 'Mechanical Component (HQ)': 4, 'Interior Part (HQ)': 3, 'Engine Part (HQ)': 2 }
+        },
+        'Ural-4320 Transport Truck': {
+          'HQ': { 'Mechanical Component (HQ)': 4, 'Interior Part (HQ)': 3, 'Engine Part (HQ)': 2 }
+        },
+        'Ural-4320 Transport Truck - Canopy': {
+          'HQ': { 'Mechanical Component (HQ)': 5, 'Interior Part (HQ)': 5, 'Engine Part (HQ)': 3 }
+        },
+        'VW Rolf': {
+          'Non-HQ': { 'Mechanical Component': 31, 'Interior Part': 19, 'Engine Part': 31 }
+        }
+      },
+      'Vests': {
+        '6B2 Vest': {
+          'Non-HQ': { 'Iron Plate': 10, 'Cloth': 14 }
+        },
+        '6B3 Vest': {
+          'HQ': { 'Kevlar': 7 }
+        },
+        'M69 Vest': {
+          'Non-HQ': { 'Iron Plate': 10, 'Cloth': 14 }
+        },
+        'PASGT Vest': {
+          'Non-HQ': { 'Iron Plate': 10, 'Cloth': 14 }
+        }
+      },
+      'Helmets': {
+        'PASGT Helmet': {
+          'Non-HQ': { 'Iron Plate': 2, 'Cloth': 2 }
+        },
+        'PASGT Helmet - Camouflaged': {
+          'Non-HQ': { 'Iron Plate': 2, 'Cloth': 2 }
+        },
+        'PASGT Helmet - Camouflaged Netting': {
+          'Non-HQ': { 'Iron Plate': 2, 'Cloth': 2 }
+        },
+        'SPH-4 Helmet': {
+          'Non-HQ': { 'Iron Plate': 7, 'Cloth': 10 }
+        },
+        'SSh-68 Helmet': {
+          'Non-HQ': { 'Iron Plate': 2, 'Cloth': 2 }
+        },
+        'SSh-68 Helmet - Camouflaged': {
+          'Non-HQ': { 'Iron Plate': 2, 'Cloth': 2 }
+        },
+        'SSh-68 Helmet - Cover': {
+          'Non-HQ': { 'Iron Plate': 2, 'Cloth': 2 }
+        },
+        'SSh-68 Helmet - KZS': {
+          'Non-HQ': { 'Iron Plate': 2, 'Cloth': 2 }
+        },
+        'SSh-68 Helmet - Netting': {
+          'Non-HQ': { 'Iron Plate': 2, 'Cloth': 2 }
+        },
+        'ZSh-5 Helmet': {
+          'Non-HQ': { 'Iron Plate': 7, 'Cloth': 10 }
+        }
+      },
+      'Clothes': {
+        'ALICE Medium Backpack': {
+          'Non-HQ': { 'Cloth': 2 }
+        },
+        'Bandana': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Balaclava': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'BDU Blouse': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'BDU Blouse - Rolled-up': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'BDU Trousers': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Beanie': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Boonie': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Cap - All Variants': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Cargo Pants': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Cargo Pants (Colored)': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Cardigan': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Classic Shoe': {
+          'Non-HQ': { 'Cloth': 2 }
+        },
+        'CWU-27 Pilot Coveralls': {
+          'Non-HQ': { 'Cloth': 20 }
+        },
+        'Dress': {
+          'Non-HQ': { 'Cloth': 3 }
+        },
+        'Fedora': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Fisher Hat': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Flat Cap': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Half Mask': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Hunting Vest': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'IIFS Large Combat Field Pack': {
+          'Non-HQ': { 'Cloth': 32 }
+        },
+        'Jacket': {
+          'Non-HQ': { 'Cloth': 2 }
+        },
+        'Jeans': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Jeans (Colored)': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Knit Cap': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Kolobok Backpack': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'M70 Backpack': {
+          'Non-HQ': { 'Cloth': 2 }
+        },
+        'M70 Cap': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'M70 Parka': {
+          'Non-HQ': { 'Cloth': 2 }
+        },
+        'M70 Trousers': {
+          'Non-HQ': { 'Cloth': 2 }
+        },
+        'M88 Field Cap': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'M88 Jacket': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'M88 Jacket - Rolled-up': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'M88 Trousers': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Mask (Medical)': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Mask (Latex)': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Mask (Ski)': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Officer\'s Cap': {
+          'Non-HQ': { 'Cloth': 64 }
+        },
+        'Panamka': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Paper Bag': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Polo': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Pullover': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Robe': {
+          'Non-HQ': { 'Cloth': 7 }
+        },
+        'Runner Shoe': {
+          'Non-HQ': { 'Cloth': 2 }
+        },
+        'Sneaker': {
+          'Non-HQ': { 'Cloth': 4 }
+        },
+        'Soviet Combat Boots': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Soviet Pilot Jacket': {
+          'Non-HQ': { 'Cloth': 11 }
+        },
+        'Soviet Pilot Pants': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Suit Jacket': {
+          'Non-HQ': { 'Cloth': 61 }
+        },
+        'Suit Pants': {
+          'Non-HQ': { 'Cloth': 50 }
+        },
+        'Sweater': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Sweat Pants': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'TShirt': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'US Combat Boots': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Veshmeshok Backpack': {
+          'Non-HQ': { 'Cloth': 1 }
+        },
+        'Wool Hat': {
+          'Non-HQ': { 'Cloth': 50 }
+        }
+      }
+    };
+
+    // DOM elements
+    const itemSelect = document.getElementById('itemSelect');
+    const categorySelect = document.getElementById('categorySelect');
+    const componentSelect = document.getElementById('componentSelect');
+    const componentQty = document.getElementById('componentQty');
+    const result = document.getElementById('result');
+    const multiplierInput = document.getElementById('priceMultiplier');
+    const multiplierValue = document.getElementById('multiplierValue');
+    const multiplierStatus = document.getElementById('multiplierStatus');
+    const quantityInput = document.getElementById('itemQuantity');
+    const hourlyRateInput = document.getElementById('hourlyRate');
+    const timeSpentInput = document.getElementById('timeSpent');
+    const settingsToggle = document.getElementById('settingsToggle');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const overlay = document.getElementById('overlay');
+
+    // Initialize custom prices from memory
+    let customPrices = {};
+
+    function populateItems(category = 'All') {
+      itemSelect.innerHTML = '<option value="">Choose an item...</option>';
+      for (const [cat, items] of Object.entries(itemData)) {
+        if (category !== 'All' && cat !== category) continue;
+        for (const name in items) {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          itemSelect.appendChild(opt);
+        }
+      }
+    }
+
+    function populateComponents() {
+      componentSelect.innerHTML = '<option value="">Choose component...</option>';
+      const allComponents = Object.keys(componentRecipes);
+      allComponents.forEach(comp => {
+        const opt = document.createElement('option');
+        opt.value = comp;
+        opt.textContent = comp;
+        componentSelect.appendChild(opt);
+      });
+    }
+
+    function populateMaterialPrices() {
+      const container = document.getElementById('materialPrices');
+      container.innerHTML = '';
+
+      Object.entries(rawMaterialPrices).forEach(([name, price]) => {
+        const div = document.createElement('div');
+        div.className = 'material-item';
+        div.innerHTML = `
+  <label>${name}</label>
+  <div class="price-input">
+    <span class="price-prefix">$</span>
+    <input type="number" id="price_${name}" value="${customPrices[name] || price}" min="0" step="1">
+  </div>
+`;
+
+        container.appendChild(div);
+      });
+    }
+
+    function updateMultiplierDisplay() {
+      const value = parseInt(multiplierInput.value);
+      multiplierValue.textContent = `${value}%`;
+
+      const statusEl = multiplierStatus;
+      statusEl.className = 'multiplier-status';
+
+      if (value === 100) {
+        statusEl.className += ' status-base';
+        statusEl.textContent = 'Base Price';
+      } else if (value < 100) {
+        statusEl.className += ' status-lower';
+        statusEl.textContent = 'Below Base';
+      } else {
+        statusEl.className += ' status-higher';
+        statusEl.textContent = 'Above Base';
+      }
+    }
+
+    function calculateComponentCost(name, qty = 1) {
+      const price = customPrices[name] || rawMaterialPrices[name];
+      if (price) return price * qty;
+      if (componentRecipes[name]) {
+        return Object.entries(componentRecipes[name]).reduce((sum, [sub, count]) => {
+          return sum + calculateComponentCost(sub, count * qty);
+        }, 0);
+      }
+      return 0;
+    }
+
+    function breakdownResources(components) {
+      const flat = {};
+      const recurse = (name, qty) => {
+        if (rawMaterialPrices[name] || customPrices[name]) {
+          flat[name] = (flat[name] || 0) + qty;
+        } else if (componentRecipes[name]) {
+          for (const [sub, count] of Object.entries(componentRecipes[name])) {
+            recurse(sub, count * qty);
+          }
+        }
+      };
+      for (const [comp, qty] of Object.entries(components)) {
+        recurse(comp, qty);
+      }
+      return flat;
+    }
+
+    function calculateCost() {
+      const itemName = itemSelect.value;
+      if (!itemName) {
+        showError("Please select an item.");
+        return;
+      }
+
+      let found = null;
+      let variant = null;
+      for (const items of Object.values(itemData)) {
+        if (items[itemName]) {
+          found = items[itemName];
+          variant = found.HQ || found['Non-HQ'];
+          break;
+        }
+      }
+      if (!variant) {
+        showError("Item not found.");
+        return;
+      }
+
+      const quantity = parseInt(quantityInput.value) || 1;
+      const hours = parseFloat(timeSpentInput.value) || 0;
+      const rate = parseFloat(hourlyRateInput.value) || 0;
+      const laborCost = hours * rate;
+
+      let baseCost = 0;
+      for (const [comp, qty] of Object.entries(variant)) {
+        baseCost += calculateComponentCost(comp, qty);
+      }
+      baseCost *= quantity;
+
+      const rawBreakdown = breakdownResources(variant);
+      const multiplier = parseFloat(multiplierInput.value) / 100;
+      const materialCostWithMultiplier = baseCost * multiplier;
+      const totalCost = materialCostWithMultiplier + laborCost;
+
+      displayResult(itemName, quantity, baseCost, materialCostWithMultiplier, laborCost, totalCost, rawBreakdown, hours, rate);
+    }
+
+    function calculateComponentOnly() {
+      const name = componentSelect.value;
+      const qty = parseInt(componentQty.value);
+      if (!name || isNaN(qty) || qty < 1) {
+        showError("Please select a component and enter a valid quantity.");
+        return;
+      }
+
+      const baseCost = calculateComponentCost(name, qty);
+      const multiplier = parseFloat(multiplierInput.value) / 100;
+      const totalCost = baseCost * multiplier;
+      const breakdown = breakdownResources({ [name]: qty });
+
+      displayComponentResult(name, qty, baseCost, totalCost, breakdown);
+    }
+
+    function displayResult(itemName, quantity, baseCost, materialCost, laborCost, totalCost, breakdown, hours, rate) {
+      const breakdownHTML = Object.entries(breakdown)
+        .map(([name, qty]) => {
+          const price = customPrices[name] || rawMaterialPrices[name];
+          const itemQuantity = parseInt(quantityInput.value) || 1;
+          const totalQty = qty * itemQuantity;
+          const itemCost = price * totalQty;
+          return `
+                        <li>
+                            <span class="material-name">${totalQty} × ${name} @ $${price.toLocaleString()}</span>
+                            <span class="material-cost">$${itemCost.toLocaleString()}</span>
+                        </li>
+                    `;
+        })
+        .join('');
+
+      result.innerHTML = `
+                <h3>${quantity} × ${itemName}</h3>
+                <div class="cost-summary">
+                    <div class="cost-item">
+                        <div class="label">Base Material Cost</div>
+                        <div class="value">$${baseCost.toLocaleString()}</div>
+                    </div>
+                    <div class="cost-item">
+                        <div class="label">Material Cost (${multiplierInput.value}%)</div>
+                        <div class="value">$${materialCost.toLocaleString()}</div>
+                    </div>
+                    <div class="cost-item">
+                        <div class="label">Labor Cost (${hours}h × $${rate})</div>
+                        <div class="value">$${laborCost.toLocaleString()}</div>
+                    </div>
+                    <div class="cost-item">
+                        <div class="label">Total Cost</div>
+                        <div class="value" style="color: #00c6ff; font-size: 2rem;">$${totalCost.toLocaleString()}</div>
+                    </div>
+                </div>
+                <div class="breakdown">
+                    <h4>Raw Material Breakdown</h4>
+                    <ul>${breakdownHTML}</ul>
+                </div>
+            `;
+      result.style.display = 'block';
+    }
+
+    function displayComponentResult(name, qty, baseCost, totalCost, breakdown) {
+      const breakdownHTML = Object.entries(breakdown)
+        .map(([n, q]) => {
+          const price = customPrices[n] || rawMaterialPrices[n];
+          const itemCost = price * q;
+          return `
+                        <li>
+                            <span class="material-name">${q} × ${n} @ $${price.toLocaleString()}</span>
+                            <span class="material-cost">$${itemCost.toLocaleString()}</span>
+                        </li>
+                    `;
+        })
+        .join('');
+
+      result.innerHTML = `
+                <h3>${qty} × ${name}</h3>
+                <div class="cost-summary">
+                    <div class="cost-item">
+                        <div class="label">Base Cost</div>
+                        <div class="value">$${baseCost.toLocaleString()}</div>
+                    </div>
+                    <div class="cost-item">
+                        <div class="label">Total Cost (${multiplierInput.value}%)</div>
+                        <div class="value" style="color: #00c6ff; font-size: 2rem;">$${totalCost.toLocaleString()}</div>
+                    </div>
+                </div>
+                <div class="breakdown">
+                    <h4>Raw Material Breakdown</h4>
+                    <ul>${breakdownHTML}</ul>
+                </div>
+            `;
+      result.style.display = 'block';
+    }
+
+    function showError(message) {
+      result.innerHTML = `
+                <h3 style="color: #ff4c4c;">Error</h3>
+                <p style="color: #ff4c4c; font-size: 1.1rem;">${message}</p>
+            `;
+      result.style.display = 'block';
+    }
+
+    function toggleSettings() {
+      const isOpen = settingsPanel.classList.contains('open');
+      if (isOpen) {
+        settingsPanel.classList.remove('open');
+        overlay.classList.remove('active');
+      } else {
+        settingsPanel.classList.add('open');
+        overlay.classList.add('active');
+      }
+    }
+
+    function applyPrices() {
+      Object.keys(rawMaterialPrices).forEach(name => {
+        const input = document.getElementById(`price_${name}`);
+        if (input) {
+          customPrices[name] = parseInt(input.value) || rawMaterialPrices[name];
+        }
+      });
+      toggleSettings();
+
+      // Show success message briefly
+      const toggle = settingsToggle;
+      const originalText = toggle.innerHTML;
+      toggle.innerHTML = '✓';
+      toggle.style.color = '#10b981';
+      setTimeout(() => {
+        toggle.innerHTML = originalText;
+        toggle.style.color = '#00c6ff';
+      }, 1500);
+    }
+
+    function resetPrices() {
+      customPrices = {};
+      populateMaterialPrices();
+    }
+
+    // Event listeners
+    categorySelect.addEventListener('change', () => populateItems(categorySelect.value));
+    multiplierInput.addEventListener('input', updateMultiplierDisplay);
+    settingsToggle.addEventListener('click', toggleSettings);
+    overlay.addEventListener('click', toggleSettings);
+
+    // Close settings panel when clicking outside
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && settingsPanel.classList.contains('open')) {
+        toggleSettings();
+      }
+    });
+
+    // Initialize the application
+    populateItems();
+    populateComponents();
+    populateMaterialPrices();
+    updateMultiplierDisplay();
+  </script>
+  <script type="module" src="heartbeat.js"></script>
+</body>
+
+</html>

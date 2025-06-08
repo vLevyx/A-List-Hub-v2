@@ -10,26 +10,26 @@ document.addEventListener('DOMContentLoaded', () => {
     { weapon: 'MP-43', ammo: '12/70 7mm Buckshot', fireModes: 'Semi', attachments: 'None', type: 'shotgun' },
 
     // Submachine Guns
-    { weapon: 'MP5A2', ammo: '30rnd 9x19 MP5 Mag', fireModes: 'Full', attachments: 'None', type: 'submachine' },
-    { weapon: 'MP7A2', ammo: '4.6x40 40rnd Mag', fireModes: 'Semi, Full', attachments: 'EOTECH XPS3, Reflex scope and Elcan Specter, 4.7 mm Flash Hider', type: 'submachine' },
+    { weapon: 'MP5A2', ammo: '30rnd 9x19 MP5 Mag', fireModes: 'Full', attachments: 'EOTECH XPS3, Leupold VX-6, Reflex scope', type: 'submachine' },
+    { weapon: 'MP7A2', ammo: '4.6x40 40rnd Mag', fireModes: 'Semi, Full', attachments: 'EOTECH XPS3, Reflex scope, Elcan Specter, and 4.7 mm Flash Hider', type: 'submachine' },
 
     // Assault Rifles
     { weapon: 'AK-74', ammo: '7.62x39mm 30rnd AK Mag', fireModes: 'Semi, Full', attachments: '6P20 Muzzle Brake', type: 'assault' },
     { weapon: 'AKS-74U', ammo: '5.45x39mm 30rnd AK Mag OR 45rnd RPK-74 Tracer Mag', fireModes: 'Semi, Full', attachments: '6P26 Flash Hider', type: 'assault' },
-    { weapon: 'M16 Carbine', ammo: '5.56x45mm 30rnd STANAG Mag', fireModes: 'Semi, Full', attachments: '4x20 Carry Handle Scope, Carry Handle Red Dot Sight, A2 Flash Hider', type: 'assault' },
-    { weapon: 'M16A2', ammo: '5.56x45mm 30rnd STANAG Mag', fireModes: 'Semi, Burst', attachments: '4x20 Carry Handle Scope, Carry Handle Red Dot Sight, A2 Flash Hider', type: 'assault' },
-    { weapon: 'M16A2 Auto', ammo: '5.56x45mm 30rnd STANAG Mag', fireModes: 'Semi, Burst, Full', attachments: '4x20 Carry Handle Scope, Carry Handle Red Dot Sight, A2 Flash Hider', type: 'assault' },
-    { weapon: 'M416', ammo: '5.56x45mm 30rnd STANAG Mag', fireModes: 'Semi, Full', attachments: 'EOTECH XPS3, Reflex scope and Elcan Specter, A2 Flash Hider', type: 'assault' },
+    { weapon: 'M16 Carbine', ammo: '5.56x45mm 30rnd STANAG Mag', fireModes: 'Semi, Full', attachments: '4x20 Carry Handle Scope, Carry Handle Red Dot Sight, and A2 Flash Hider', type: 'assault' },
+    { weapon: 'M16A2', ammo: '5.56x45mm 30rnd STANAG Mag', fireModes: 'Semi, Burst', attachments: '4x20 Carry Handle Scope, Carry Handle Red Dot Sight, and A2 Flash Hider', type: 'assault' },
+    { weapon: 'M16A2 Auto', ammo: '5.56x45mm 30rnd STANAG Mag', fireModes: 'Semi, Burst, Full', attachments: '4x20 Carry Handle Scope, Carry Handle Red Dot Sight, and A2 Flash Hider', type: 'assault' },
+    { weapon: 'M416', ammo: '5.56x45mm 30rnd STANAG Mag', fireModes: 'Semi, Full', attachments: 'EOTECH XPS3, Reflex scope, Elcan Specter, and A2 Flash Hider', type: 'assault' },
     { weapon: 'Sa-58P', ammo: '7.62x39mm 30rnd Sa-58 Mag', fireModes: 'Semi, Full', attachments: 'None', type: 'assault' },
     { weapon: 'Sa-58V', ammo: '7.62x39mm 30rnd Sa-58 Mag', fireModes: 'Semi, Full', attachments: 'None', type: 'assault' },
-    { weapon: 'ScarH', ammo: '7.62x51 FMJ 20rnd Mag', fireModes: 'Semi, Full', attachments: 'EOTECH XPS3, Reflex scope and Elcan Specter, 7.62x51mm Flash Hider', type: 'assault' },
-    { weapon: 'SIG MCX', ammo: '.300 Blackout Mag', fireModes: 'Semi, Full', attachments: 'EOTECH XPS3, Reflex scope and Elcan Specter, A2 Flash Hider', type: 'assault' },
-    { weapon: 'SIG MCX SPEAR', ammo: '6.8x51mm 25rnd Mag', fireModes: 'Semi, Full', attachments: '6.8x51mm Flash Hider', type: 'assault' },
+    { weapon: 'ScarH', ammo: '7.62x51 FMJ 20rnd Mag', fireModes: 'Semi, Full', attachments: 'EOTECH XPS3, Reflex scope, Elcan Specter, Leupold VX-6, and 7.62x51mm Flash Hider', type: 'assault' },
+    { weapon: 'SIG MCX', ammo: '.300 Blackout Mag', fireModes: 'Semi, Full', attachments: 'EOTECH XPS3, Reflex scope, Elcan Specter, Leupold VX-6, and A2 Flash Hider', type: 'assault' },
+    { weapon: 'SIG MCX SPEAR', ammo: '6.8x51mm 25rnd Mag', fireModes: 'Semi, Full', attachments: 'Leupold VX-6, 6.8x51mm Flash Hider', type: 'assault' },
     { weapon: 'Steyr AUG', ammo: '5.56x45 30rnd AUG Mag', fireModes: 'Semi, Full', attachments: 'EOTECH XPS3, Reflex scope and Elcan Specter', type: 'assault' },
 
     // Sniper Rifles
     { weapon: 'M21 SWS', ammo: '7.62x51mm 20rnd M14 Mag', fireModes: 'Semi', attachments: 'ART II Scope', type: 'sniper' },
-    { weapon: 'SR25', ammo: '7.62x51 30rnd Mag', fireModes: 'Semi', attachments: 'EOTECH XPS3, Reflex scope and Elcan Specter, 7.62x51mm Flash Hider', type: 'sniper' },
+    { weapon: 'SR25', ammo: '7.62x51 30rnd Mag', fireModes: 'Semi', attachments: 'EOTECH XPS3, Reflex scope, Elcan Specter, Leupold VX-6, and 7.62x51mm Flash Hider', type: 'sniper' },
     { weapon: 'SSG', ammo: '5rnd .338 FMJ', fireModes: 'Semi', attachments: 'ART II Scope', type: 'sniper' },
     { weapon: 'SVD', ammo: '7.62x54mmR 10rnd SVD Mag', fireModes: 'Semi', attachments: 'PSO-1 Scope', type: 'sniper' },
 

@@ -8,7 +8,7 @@ const hqComponentsList = ['Component (HQ)', 'Kevlar', 'Weapon Part (HQ)', 'Stabi
 const kit = [];
 
 const itemsByCategory = {
-  'Weapons': ['AK-74', 'AKS-74U', 'CheyTac M200 Intervention', 'Colt 1911', 'Desert Eagle', 'M16A2', 'M16A2 - AUTO', 'M21 SWS', 'M249 SAW', 'M416', 'M9', 'MP 43 1C', 'MP5A2', 'MP7A2', 'PKM', 'PM', 'RPK-74',
+  'Weapons': ['AK-74', 'AKS-74U', 'CheyTac M200 Intervention', 'Colt 1911', 'Desert Eagle', 'M16A2', 'M16A2 - AUTO', 'M16 Carbine', 'M21 SWS', 'M249 SAW', 'M416', 'M9', 'MP 43 1C', 'MP5A2', 'MP7A2', 'PKM', 'PM', 'RPK-74',
     'Sa-58P', 'Sa-58V', 'Scar-H', 'SIG MCX', 'SIG MCX SPEAR', 'SSG10A2-Sniper', 'Steyr AUG', 'SR-25 Rifle', 'SVD'],
 
   'Magazines': ['30rnd 9x19 Mag', '8rnd .45 ACP', '9x18mm 8rnd PM Mag', '9x19mm 15rnd M9 Mag', '.300 Blackout Mag', '.338 5rnd FMJ', '.50 AE 7rnd Mag',
@@ -28,7 +28,7 @@ const itemsByCategory = {
   'Helmets': ['PASGT Helmet', 'PASGT Helmet - Camouflaged', 'PASGT Helmet - Camouflaged Netting', 'SPH-4 Helmet', 'SSh-68 Helmet',
     'SSh-68 Helmet - Camouflaged', 'SSh-68 Helmet - Cover', 'SSh-68 Helmet - KZS', 'SSh-68 Helmet - Netting', 'ZSh-5 Helmet'],
 
-  'Clothes': ['ALICE Medium Backpack', 'Bandana', 'Balaclava', 'BDU Blouse', 'BDU Blouse - Rolled-up', 'BDU Trousers', 'Beanie', 'Boonie', 'Cargo Pants', 'Cargo Pants (Colored)',
+  'Clothes': ['ALICE Medium Backpack', 'Bandana', 'Balaclava', 'BDU Blouse', 'BDU Blouse - Rolled-up', 'BDU Trousers', 'Beanie', 'Boonie', 'Cap - All Variants', 'Cargo Pants', 'Cargo Pants (Colored)',
     'Cardigan', 'Classic Shoe', 'CWU-27 Pilot Coveralls', 'Dress', 'Fedora', 'Fisher Hat', 'Flat Cap', 'Half Mask', 'Hunting Vest', 'IIFS Large Combat Field Pack',
     'Jacket', 'Jeans', 'Jeans (Colored)', 'KLMK Coveralls', 'Knit Cap', 'Kolobok Backpack', 'M70 Backpack', 'M70 Cap', 'M70 Parka',
     'M70 Trousers', 'M88 Field Cap', 'M88 Jacket', 'M88 Jacket - Rolled-up', 'M88 Trousers', 'Mask (Medical)', 'Mask (Latex)', 'Mask (Ski)', 'Officer\'s Cap',
@@ -44,6 +44,7 @@ const itemsByCategory = {
 
 };
 
+// ADD NEW BLUEPRINTS HERE //
 // Crafting levels for each item
 const craftingLevels = {
   // Weapons
@@ -54,6 +55,7 @@ const craftingLevels = {
   'Desert Eagle': 10,
   'M16A2': 5,
   'M16A2 - AUTO': 6,
+  'M16 Carbine': 6,
   'M21 SWS': 7,
   'M249 SAW': 11,
   'M416': 7,
@@ -160,6 +162,7 @@ const craftingLevels = {
   'BDU Trousers': 2,
   'Beanie': 4,
   'Boonie': 4,
+  'Cap - All Variants': 2,
   'Cargo Pants': 3,
   'Cargo Pants (Colored)': 4,
   'Cardigan': 3,
@@ -267,8 +270,10 @@ const storageOptions = {
     "UAZ-469 Off-Road": 13,
     "UAZ-469 Off-Road - Open Top": 13,
     "Ural-4320 Fuel Truck": { canisters: 83 },
+    "EVENT | Ural-4320 Fuel Truck": { canisters: 98 },
     "Ural-4320 Transport Truck": 100,
     "Ural-4320 Transport Truck - Canopy": 116,
+    "EVENT | Ural-4320 Transport Truck - Canopy": 128,
     "VW Rolf": 18,
     "S105 Car": 18,
     "S1203 Minibus": 18,
@@ -278,9 +283,9 @@ const storageOptions = {
   backpacks: {
     "ALICE Medium Backpack": 13,
     "IIFS Large Combat Field Pack": 19,
-    "Kolobok Backpack": 1,
+    "Kolobok Backpack": 10,
     "M70 Backpack": 13,
-    "Veshmeshok Backpack": 1
+    "Veshmeshok Backpack": 6
   }
 };
 
@@ -333,6 +338,7 @@ if (kitSidebar && closeKitBtn && reopenKitBtn) {
   });
 }
 
+// ADD NEW BLUEPRINTS HERE //
 const itemComponents = {
   'Weapons': {
     'AK-74': {
@@ -360,6 +366,10 @@ const itemComponents = {
       'HQ': {}
     },
     'M16A2 - AUTO': {
+      'Non-HQ': { 'Weapon Part': 39, 'Stabilizer': 21, 'Attachment Part': 24 },
+      'HQ': {}
+    },
+    'M16 Carbine': {
       'Non-HQ': { 'Weapon Part': 39, 'Stabilizer': 21, 'Attachment Part': 24 },
       'HQ': {}
     },
@@ -791,6 +801,10 @@ const itemComponents = {
       'Non-HQ': { 'Cloth': 1 },
       'HQ': {}
     },
+    'Cap - All Variants': {
+      'Non-HQ': { 'Cloth': 1 },
+      'HQ': {}
+    },
     'Cargo Pants': {
       'Non-HQ': { 'Cloth': 1 },
       'HQ': {}
@@ -1131,6 +1145,8 @@ const componentResources = {
   'Special Gun Barrel': { 'Special Gun Barrel': 1 }
 };
 
+
+// ADD NEW BLUEPRINTS HERE //
 const craftingTimes = {
   // Base Components (seconds per unit)
   'Cloth': 10,
@@ -1167,6 +1183,7 @@ const craftingTimes = {
   'Desert Eagle': 70,
   'M16A2': 50,
   'M16A2 - AUTO': 50,
+  'M16 Carbine': 50,
   'M21 SWS': 50,
   'M249 SAW': 130,
   'M416': 50,
@@ -1273,6 +1290,7 @@ const craftingTimes = {
   'BDU Trousers': 20,
   'Beanie': 20,
   'Boonie': 20,
+  'Cap - All Variants': 20,
   'Cargo Pants': 20,
   'Cargo Pants (Colored)': 20,
   'Cardigan': 20,
