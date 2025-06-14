@@ -77,6 +77,7 @@ const itemData: ItemData = {
       'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 2 }
     },
     'M16A2': {
+      
       'Non-HQ': { 'Weapon Part': 27, 'Stabilizer': 15, 'Attachment Part': 17 }
     }
   },
