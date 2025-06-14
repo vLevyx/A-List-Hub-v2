@@ -14,7 +14,7 @@ const itemsByCategory = {
   'Magazines': ['30rnd 9x19 Mag', '8rnd .45 ACP', '9x18mm 8rnd PM Mag', '9x19mm 15rnd M9 Mag', '.300 Blackout Mag', '.338 5rnd FMJ', '.50 AE 7rnd Mag',
     '12/70 7mm Buckshot', '4.6x40 40rnd Mag', '5.45x39mm 30rnd AK Mag', '5.45x39mm 45rnd RPK-74 Tracer Mag', '5.56x45mm 30rnd AUG Mag',
     '5.56x45mm 30rnd STANAG Mag', '5.56x45mm 200rnd M249 Belt', '7Rnd M200 Magazine', '7.62x39mm 30rnd Sa-58 Mag', '7.62x51mm FMJ', '7.62x51mm 20rnd M14 Mag',
-    '7.62x51mm 30rnd Mag', 'SR25 7.62x51mm 20rnd', '7.62x54mmR 100rnd PK Belt', 'SPEAR 6.8x51 25rnd'],
+    '7.62x51mm 30rnd Mag', 'SR25 7.62x51mm 20rnd', '7.62x54mmR 100rnd PK Belt', '7.62x54mmR 10rnd SVD Sniper Mag', 'SPEAR 6.8x51 25rnd'],
 
   'Attachments': ['A2 Flash Hider', 'ART II Scope', 'Carry Handle Red-Dot-Sight', 'EOTECH XPS3', 'Elcan Specter', 'Leupold VX-6', 'PSO-1 Scope', 'Reflex Scope', '4x20 Carry Handle Scope', '4.7mm FlashHider', '6.8x51mm FlashHider', '6P26 Flash Hider',
     '6P20 Muzzle Brake', '7.62x51mm FlashHider'],
@@ -52,7 +52,7 @@ const craftingLevels = {
   'AKS-74U': 8,
   'CheyTac M200 Intervention': 13,
   'Colt 1911': 10,
-  'Desert Eagle': 10,
+  'Desert Eagle': 8,
   'M16A2': 5,
   'M16A2 - AUTO': 6,
   'M16 Carbine': 6,
@@ -68,12 +68,12 @@ const craftingLevels = {
   'RPK-74': 10,
   'Sa-58P': 9,
   'Sa-58V': 9,
-  'Scar-H': 11,
+  'Scar-H': 10,
   'SIG MCX': 7,
   'SIG MCX SPEAR': 10,
   'SSG10A2-Sniper': 10,
   'Steyr AUG': 6,
-  'SR-25 Rifle': 11,
+  'SR-25 Rifle': 10,
   'SVD': 10,
   // Magazines
   '30rnd 9x19 Mag': 5,
@@ -97,6 +97,7 @@ const craftingLevels = {
   '7.62x51mm 30rnd Mag': 11,
   'SR25 7.62x51mm 20rnd': 11,
   '7.62x54mmR 100rnd PK Belt': 12,
+  '7.62x54mmR 10rnd SVD Sniper Mag': 10,
   'SPEAR 6.8x51 25rnd': 9,
   // Attachments
   '4x20 Carry Handle Scope': 5,
@@ -343,34 +344,34 @@ const itemComponents = {
   'Weapons': {
     'AK-74': {
       'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+      'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 2 }
     },
     'AKS-74U': {
       'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+      'HQ': { 'Weapon Part (HQ)': 1, 'Stabilizer (HQ)': 1, 'Attachment Part (HQ)': 1 }
     },
     'CheyTac M200 Intervention': {
       'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 8, 'Stabilizer (HQ)': 8, 'Attachment Part (HQ)': 10, 'Special Gun Barrel': 1 }
+      'HQ': { 'Weapon Part (HQ)': 4, 'Stabilizer (HQ)': 4, 'Attachment Part (HQ)': 5, 'Special Gun Barrel': 1 }
     },
     'Colt 1911': {
       'Non-HQ': { 'Weapon Part': 5, 'Stabilizer': 3, 'Attachment Part': 3 },
       'HQ': {}
     },
     'Desert Eagle': {
-      'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 1, 'Stabilizer (HQ)': 1, 'Attachment Part (HQ)': 2 }
+      'Non-HQ': { 'Weapon Part': 13, 'Stabilizer': 7, 'Attachment Part': 8 },
+      'HQ': {}
     },
     'M16A2': {
       'Non-HQ': { 'Weapon Part': 27, 'Stabilizer': 15, 'Attachment Part': 17 },
       'HQ': {}
     },
     'M16A2 - AUTO': {
-      'Non-HQ': { 'Weapon Part': 39, 'Stabilizer': 21, 'Attachment Part': 24 },
+      'Non-HQ': { 'Weapon Part': 29, 'Stabilizer': 16, 'Attachment Part': 18 },
       'HQ': {}
     },
     'M16 Carbine': {
-      'Non-HQ': { 'Weapon Part': 39, 'Stabilizer': 21, 'Attachment Part': 24 },
+      'Non-HQ': { 'Weapon Part': 29, 'Stabilizer': 16, 'Attachment Part': 18 },
       'HQ': {}
     },
     'M21 SWS': {
@@ -379,10 +380,10 @@ const itemComponents = {
     },
     'M249 SAW': {
       'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 13, 'Stabilizer (HQ)': 13, 'Attachment Part (HQ)': 15, 'Special Gun Barrel': 1 }
+      'HQ': { 'Weapon Part (HQ)': 9, 'Stabilizer (HQ)': 9, 'Attachment Part (HQ)': 11, 'Special Gun Barrel': 1 }
     },
     'M416': {
-      'Non-HQ': { 'Weapon Part': 43, 'Stabilizer': 23, 'Attachment Part': 26 },
+      'Non-HQ': { 'Weapon Part': 34, 'Stabilizer': 19, 'Attachment Part': 21 },
       'HQ': {}
     },
     'M9': {
@@ -391,10 +392,10 @@ const itemComponents = {
     },
     'MP 43 1C': {
       'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 2 }
+      'HQ': { 'Weapon Part (HQ)': 1, 'Stabilizer (HQ)': 1, 'Attachment Part (HQ)': 1 }
     },
     'MP5A2': {
-      'Non-HQ': { 'Weapon Part': 11, 'Stabilizer': 6, 'Attachment Part': 7 },
+      'Non-HQ': { 'Weapon Part': 15, 'Stabilizer': 8, 'Attachment Part': 9 },
       'HQ': {}
     },
     'MP7A2': {
@@ -403,7 +404,7 @@ const itemComponents = {
     },
     'PKM': {
       'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 19, 'Stabilizer (HQ)': 19, 'Attachment Part (HQ)': 23, 'Special Gun Barrel': 1 }
+      'HQ': { 'Weapon Part (HQ)': 12, 'Stabilizer (HQ)': 12, 'Attachment Part (HQ)': 15, 'Special Gun Barrel': 1 }
     },
     'PM': {
       'Non-HQ': { 'Weapon Part': 4, 'Stabilizer': 2, 'Attachment Part': 2 },
@@ -411,39 +412,39 @@ const itemComponents = {
     },
     'RPK-74': {
       'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 4 }
+      'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 3 }
     },
     'Sa-58V': {
       'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+      'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 2 }
     },
     'Sa-58P': {
       'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+      'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 2 }
     },
     'Scar-H': {
       'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 4, 'Stabilizer (HQ)': 4, 'Attachment Part (HQ)': 5 }
+      'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 3 }
     },
     'SIG MCX': {
-      'Non-HQ': { 'Weapon Part': 55, 'Stabilizer': 30, 'Attachment Part': 34 },
+      'Non-HQ': { 'Weapon Part': 38, 'Stabilizer': 20, 'Attachment Part': 23 },
       'HQ': {}
     },
     'SIG MCX SPEAR': {
       'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 4 }
+      'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 3 }
     },
     'SSG10A2-Sniper': {
       'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+      'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 3 }
     },
     'Steyr AUG': {
-      'Non-HQ': { 'Weapon Part': 51, 'Stabilizer': 28, 'Attachment Part': 31 },
+      'Non-HQ': { 'Weapon Part': 33, 'Stabilizer': 18, 'Attachment Part': 20 },
       'HQ': {}
     },
     'SR-25 Rifle': {
       'Non-HQ': {},
-      'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 4 }
+      'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 3 }
     },
     'SVD': {
       'Non-HQ': {},
@@ -495,10 +496,6 @@ const itemComponents = {
       'Non-HQ': {},
       'HQ': { 'Ammo (HQ)': 1 }
     },
-    '7.62x54mmR 10rnd SVD Mag': {
-      'Non-HQ': {},
-      'HQ': { 'Ammo (HQ)': 1 }
-    },
     '8rnd .45 ACP': {
       'Non-HQ': { 'Ammo': 1 },
       'HQ': {}
@@ -543,7 +540,7 @@ const itemComponents = {
       'Non-HQ': {},
       'HQ': { 'Ammo (HQ)': 15 }
     },
-    '7.62x54mmR 10rnd SVD Mag': {
+    '7.62x54mmR 10rnd SVD Sniper Mag': {
       'Non-HQ': {},
       'HQ': { 'Ammo (HQ)': 1 }
     },
@@ -1119,32 +1116,31 @@ if (itemComponents['Components']?.['Kevlar']) {
 }
 
 const componentResources = {
-  'Cloth': { 'Fabric': 1, 'Polyester': 1 },
-  'Iron Plate': { 'Iron Ingot': 1, 'Fabric': 1, 'Polyester': 1 },
-  'Kevlar': { 'Iron Plate': 1, 'Iron Ingot': 20 },
-  'Component': { 'Iron Ingot': 1, 'Copper Ingot': 1 },
-  'Tempered Glass': { 'Glass': 2, 'Polyester': 1 },
-  'Weapon Part': { 'Iron Ingot': 1, 'Copper Ingot': 1 },
-  'Stabilizer': { 'Iron Ingot': 2, 'Gold Ingot': 1 },
-  'Attachment Part': { 'Copper Ingot': 2, 'Silver Ingot': 1 },
   'Ammo': { 'Iron Ingot': 1, 'Charcoal': 1 },
-  'Mechanical Component': { 'Iron Ingot': 2, 'Copper Ingot': 2 },
+  'Attachment Part': { 'Copper Ingot': 2, 'Silver Ingot': 1 },
+  'Cloth': { 'Fabric': 1, 'Polyester': 1 },
+  'Component': { 'Iron Ingot': 1, 'Copper Ingot': 1 },
   'Engine Part': { 'Iron Ingot': 1, 'Copper Ingot': 1, 'Petrol': 1 },
   'Interior Part': { 'Fabric': 2, 'Polyester': 2 },
+  'Iron Plate': { 'Iron Ingot': 1, 'Fabric': 1, 'Polyester': 1 },
+  'Kevlar': { 'Iron Plate': 1, 'Iron Ingot': 20 },
+  'Mechanical Component': { 'Iron Ingot': 2, 'Copper Ingot': 2 },
   'Rotor': { 'Charcoal': 1, 'Polyester': 1 },
-  'Component (HQ)': { 'Component': 2, 'Gold Ingot': 15 },
-  'Weapon Part (HQ)': { 'Weapon Part': 3, 'Iron Ingot': 15, 'Copper Ingot': 15 },
-  'Stabilizer (HQ)': { 'Stabilizer': 3, 'Polyester': 15 },
-  'Attachment Part (HQ)': { 'Attachment Part': 3, 'Wooden Plank': 15 },
+  'Stabilizer': { 'Iron Ingot': 2, 'Gold Ingot': 1 },
+  'Tempered Glass': { 'Glass': 2, 'Polyester': 1 },
+  'Weapon Part': { 'Iron Ingot': 1, 'Copper Ingot': 1 },
   'Ammo (HQ)': { 'Ammo': 3, 'Petrol': 1 },
-  'Mechanical Component (HQ)': { 'Mechanical Component': 9, 'Gold Ingot': 45 },
+  'Attachment Part (HQ)': { 'Attachment Part': 3, 'Wooden Plank': 15 },
+  'Component (HQ)': { 'Component': 2, 'Gold Ingot': 15 },
   'Engine Part (HQ)': { 'Engine Part': 9, 'Copper Ingot': 45, 'Petrol': 45 },
   'Interior Part (HQ)': { 'Interior Part': 9, 'Wooden Plank': 45 },
+  'Mechanical Component (HQ)': { 'Mechanical Component': 9, 'Gold Ingot': 45 },
   'Rotor (HQ)': { 'Rotor': 9, 'Silver Ingot': 30 },
+  'Stabilizer (HQ)': { 'Stabilizer': 3, 'Polyester': 15 },
+  'Weapon Part (HQ)': { 'Weapon Part': 3, 'Iron Ingot': 15, 'Copper Ingot': 16 },
   'Special Rotor': { 'Special Rotor': 1 },
   'Special Gun Barrel': { 'Special Gun Barrel': 1 }
 };
-
 
 // ADD NEW BLUEPRINTS HERE //
 const craftingTimes = {
@@ -1178,26 +1174,26 @@ const craftingTimes = {
   // Weapons Time
   'AK-74': 70,
   'AKS-74U': 70,
-  'CheyTac M200 Intervention': 110,
+  'CheyTac M200 Intervention': 70,
   'Colt 1911': 50,
-  'Desert Eagle': 70,
+  'Desert Eagle': 50,
   'M16A2': 50,
   'M16A2 - AUTO': 50,
   'M16 Carbine': 50,
   'M21 SWS': 50,
-  'M249 SAW': 130,
+  'M249 SAW': 120,
   'M416': 50,
   'M9': 50,
   'MP 43 1C': 70,
   'MP5A2': 50,
   'MP7A2': 50,
-  'PKM': 70,
+  'PKM': 130,
   'PM': 50,
   'RPK-74': 70,
   'Sa-58P': 70,
   'Sa-58V': 70,
   'Scar-H': 70,
-  'SIG MCX': 60,
+  'SIG MCX': 50,
   'SIG MCX SPEAR': 70,
   'SSG10A2-Sniper': 70,
   'Stegr AUG': 50,
@@ -1225,6 +1221,7 @@ const craftingTimes = {
   '7.62x51mm 30rnd Mag': 1, /// ?
   'SR25 7.62x51mm 20rnd': 30,
   '7.62x54mmR 100rnd PK Belt': 30,
+  '7.62x54mmR 10rnd SVD Sniper Mag': 30,
   'SPEAR 6.8x51 25rnd': 30,
   // Attachments Time
   '4x20 Carry Handle Scope': 50,

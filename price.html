@@ -596,7 +596,7 @@
 
   <script>
     const rawMaterialPrices = {
-      'Sand': 2000, 'Copper Ingot': 2200, 'Iron Ingot': 2600, 'Silver Ingot': 2800,
+      'Glass': 2000, 'Copper Ingot': 2200, 'Iron Ingot': 2600, 'Silver Ingot': 2800,
       'Gold Ingot': 3000, 'Wooden Plank': 2800, 'Firewood': 2800, 'Charcoal': 2800,
       'Fabric': 3500, 'Polyester': 3500, 'Petrol': 4250, 'Special Rotor': 20000000, 'Special Gun Barrel': 2500000
     };
@@ -613,7 +613,7 @@
       'Mechanical Component': { 'Iron Ingot': 2, 'Copper Ingot': 2 },
       'Rotor': { 'Charcoal': 1, 'Polyester': 1 },
       'Stabilizer': { 'Iron Ingot': 2, 'Gold Ingot': 1 },
-      'Tempered Glass': { 'Sand': 2, 'Polyester': 1 },
+      'Tempered Glass': { 'Glass': 2, 'Polyester': 1 },
       'Weapon Part': { 'Iron Ingot': 1, 'Copper Ingot': 1 },
       'Ammo (HQ)': { 'Ammo': 3, 'Petrol': 1 },
       'Attachment Part (HQ)': { 'Attachment Part': 3, 'Wooden Plank': 15 },
@@ -623,7 +623,7 @@
       'Mechanical Component (HQ)': { 'Mechanical Component': 9, 'Gold Ingot': 45 },
       'Rotor (HQ)': { 'Rotor': 9, 'Silver Ingot': 30 },
       'Stabilizer (HQ)': { 'Stabilizer': 3, 'Polyester': 15 },
-      'Weapon Part (HQ)': { 'Weapon Part': 3, 'Iron Ingot': 15, 'Copper Ingot': 15 },
+      'Weapon Part (HQ)': { 'Weapon Part': 3, 'Iron Ingot': 15, 'Copper Ingot': 16 },
       'Special Rotor': { 'Special Rotor': 1 },
       'Special Gun Barrel': { 'Special Gun Barrel': 1 }
     };
@@ -631,85 +631,85 @@
     const itemData = {
       'Weapons': {
         'AK-74': {
-          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+          'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 2 }
         },
         'AKS-74U': {
-          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+          'HQ': { 'Weapon Part (HQ)': 1, 'Stabilizer (HQ)': 1, 'Attachment Part (HQ)': 1 }
         },
         'CheyTac M200 Intervention': {
-          'HQ': { 'Weapon Part (HQ)': 8, 'Stabilizer (HQ)': 8, 'Attachment Part (HQ)': 10, 'Special Gun Barrel': 1 }
+          'HQ': { 'Weapon Part (HQ)': 4, 'Stabilizer (HQ)': 4, 'Attachment Part (HQ)': 5, 'Special Gun Barrel': 1 }
         },
         'Colt 1911': {
           'Non-HQ': { 'Weapon Part': 5, 'Stabilizer': 3, 'Attachment Part': 3 }
         },
         'Desert Eagle': {
-          'HQ': { 'Weapon Part (HQ)': 1, 'Stabilizer (HQ)': 1, 'Attachment Part (HQ)': 2 }
+          'Non-HQ': { 'Weapon Part': 13, 'Stabilizer': 7, 'Attachment Part': 8 }
         },
         'M16 Carbine': {
-          'Non-HQ': { 'Weapon Part': 39, 'Stabilizer': 21, 'Attachment Part': 24 }
+          'Non-HQ': { 'Weapon Part': 29, 'Stabilizer': 16, 'Attachment Part': 18 }
         },
         'M16A2': {
           'Non-HQ': { 'Weapon Part': 27, 'Stabilizer': 15, 'Attachment Part': 17 }
         },
         'M16A2 - AUTO': {
-          'Non-HQ': { 'Weapon Part': 39, 'Stabilizer': 21, 'Attachment Part': 24 }
+          'Non-HQ': { 'Weapon Part': 29, 'Stabilizer': 16, 'Attachment Part': 18 }
         },
         'M21 SWS': {
           'Non-HQ': { 'Weapon Part': 39, 'Stabilizer': 21, 'Attachment Part': 24 }
         },
         'M249 SAW': {
-          'HQ': { 'Weapon Part (HQ)': 13, 'Stabilizer (HQ)': 13, 'Attachment Part (HQ)': 15, 'Special Gun Barrel': 1 }
+          'HQ': { 'Weapon Part (HQ)': 9, 'Stabilizer (HQ)': 9, 'Attachment Part (HQ)': 11, 'Special Gun Barrel': 1 }
         },
         'M416': {
-          'Non-HQ': { 'Weapon Part': 43, 'Stabilizer': 23, 'Attachment Part': 26 }
+          'Non-HQ': { 'Weapon Part': 34, 'Stabilizer': 19, 'Attachment Part': 21 }
         },
         'M9': {
           'Non-HQ': { 'Weapon Part': 5, 'Stabilizer': 3, 'Attachment Part': 3 }
         },
         'MP 43 1C': {
-          'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 2 }
+          'HQ': { 'Weapon Part (HQ)': 1, 'Stabilizer (HQ)': 1, 'Attachment Part (HQ)': 1 }
         },
         'MP5A2': {
-          'Non-HQ': { 'Weapon Part': 11, 'Stabilizer': 6, 'Attachment Part': 7 }
+          'Non-HQ': { 'Weapon Part': 15, 'Stabilizer': 8, 'Attachment Part': 9 }
         },
         'MP7A2': {
           'Non-HQ': { 'Weapon Part': 15, 'Stabilizer': 8, 'Attachment Part': 9 }
         },
         'PKM': {
-          'HQ': { 'Weapon Part (HQ)': 19, 'Stabilizer (HQ)': 19, 'Attachment Part (HQ)': 23, 'Special Gun Barrel': 1 }
+          'HQ': { 'Weapon Part (HQ)': 12, 'Stabilizer (HQ)': 12, 'Attachment Part (HQ)': 15, 'Special Gun Barrel': 1 }
         },
         'PM': {
           'Non-HQ': { 'Weapon Part': 4, 'Stabilizer': 2, 'Attachment Part': 2 }
         },
         'RPK-74': {
-          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 4 }
+          'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 3 }
         },
         'SR-25 Rifle': {
-          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 4 }
+          'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 3 }
         },
         'SSG10A2-Sniper': {
-          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+          'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 3 }
         },
         'Sa-58P': {
-          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+          'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 2 }
         },
         'Sa-58V': {
-          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 3 }
+          'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 2 }
         },
         'Scar-H': {
-          'HQ': { 'Weapon Part (HQ)': 4, 'Stabilizer (HQ)': 4, 'Attachment Part (HQ)': 5 }
+          'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 3 }
         },
         'SIG MCX': {
-          'Non-HQ': { 'Weapon Part': 55, 'Stabilizer': 30, 'Attachment Part': 34 }
+          'Non-HQ': { 'Weapon Part': 38, 'Stabilizer': 20, 'Attachment Part': 23 }
         },
         'SIG MCX SPEAR': {
-          'HQ': { 'Weapon Part (HQ)': 3, 'Stabilizer (HQ)': 3, 'Attachment Part (HQ)': 4 }
+          'HQ': { 'Weapon Part (HQ)': 2, 'Stabilizer (HQ)': 2, 'Attachment Part (HQ)': 3 }
         },
         'SVD': {
           'HQ': { 'Weapon Part (HQ)': 6, 'Stabilizer (HQ)': 6, 'Attachment Part (HQ)': 7 }
         },
         'Steyr AUG': {
-          'Non-HQ': { 'Weapon Part': 51, 'Stabilizer': 28, 'Attachment Part': 31 }
+          'Non-HQ': { 'Weapon Part': 33, 'Stabilizer': 18, 'Attachment Part': 20 }
         }
       },
       'Magazines': {
@@ -746,9 +746,6 @@
         'SR25 7.62x51mm 20rnd': {
           'HQ': { 'Ammo (HQ)': 1 }
         },
-        '7.62x54mmR 10rnd SVD Mag': {
-          'HQ': { 'Ammo (HQ)': 1 }
-        },
         '8rnd .45 ACP': {
           'Non-HQ': { 'Ammo': 1 }
         },
@@ -782,7 +779,7 @@
         '7.62x54mmR 100rnd PK Belt': {
           'HQ': { 'Ammo (HQ)': 15 }
         },
-        '7.62x54mmR 10rnd SVD Mag': {
+        '7.62x54mmR 10rnd SVD Sniper Mag': {
           'HQ': { 'Ammo (HQ)': 1 }
         },
         'SPEAR 6.8x51 25rnd': {
