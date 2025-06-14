@@ -254,7 +254,7 @@ export default function CalculatorPage() {
       'M70 Parka': { 'Non-HQ': { 'Cloth': 2 } },
       'M70 Trousers': { 'Non-HQ': { 'Cloth': 2 } },
       'M88 Field Cap': { 'Non-HQ': { 'Cloth': 1 } },
-      'M88 Jacket': { 'Non-HQ': { 'Cloth': 1 } },
+      'M88 Jacket': { 'Non-HQ': { 'Cloth': 1 }},
       'M88 Jacket - Rolled-up': { 'Non-HQ': { 'Cloth': 1 } },
       'M88 Trousers': { 'Non-HQ': { 'Cloth': 1 } },
       'Mask (Medical)': { 'Non-HQ': { 'Cloth': 1 } },
@@ -336,6 +336,25 @@ export default function CalculatorPage() {
   }
 
   const resourcesList = ['Fabric', 'Polyester', 'Iron Ingot', 'Copper Ingot', 'Glass', 'Component', 'Charcoal', 'Gold Ingot', 'Silver Ingot', 'Petrol', 'Wooden Plank']
+  const componentsList = ['Cloth', 'Iron Plate', 'Component', 'Tempered Glass', 'Weapon Part', 'Stabilizer', 'Attachment Part', 'Ammo', 'Mechanical Component', 'Engine Part', 'Interior Part', 'Rotor']
+  const hqComponentsList = ['Component (HQ)', 'Kevlar', 'Weapon Part (HQ)', 'Stabilizer (HQ)', 'Attachment Part (HQ)', 'Ammo (HQ)', 'Mechanical Component (HQ)', 'Engine Part (HQ)', 'Interior Part (HQ)', 'Rotor (HQ)', 'Special Rotor', 'Special Gun Barrel']
+
+  // Crafting times for time estimation
+  const craftingTimes: { [key: string]: number } = {
+    // Base Components (seconds per unit)
+    'Cloth': 10, 'Iron Plate': 10, 'Component': 10, 'Tempered Glass': 10,
+    'Weapon Part': 10, 'Stabilizer': 10, 'Attachment Part': 10, 'Ammo': 10,
+    'Mechanical Component': 10, 'Engine Part': 10, 'Interior Part': 10, 'Rotor': 10,
+    
+    // HQ Components (seconds per unit)
+    'Component (HQ)': 10, 'Kevlar': 10, 'Weapon Part (HQ)': 10, 'Stabilizer (HQ)': 10,
+    'Attachment Part (HQ)': 10, 'Ammo (HQ)': 10, 'Mechanical Component (HQ)': 10,
+    'Engine Part (HQ)': 10, 'Interior Part (HQ)': 10, 'Rotor (HQ)': 10,
+    
+    // Final Items (Seconds per Item)
+    'CheyTac M200 Intervention': 70,
+    '9x18mm 8rnd PM Mag': 20
+  }
 
   // Redirect if no access
   useEffect(() => {
@@ -396,6 +415,19 @@ export default function CalculatorPage() {
     setSelectedItem('')
   }, [selectedCategory])
 
+  // Load saved toggle state from localStorage
+  useEffect(() => {
+    const savedToggleState = localStorage.getItem('showAllBlueprints')
+    if (savedToggleState !== null) {
+      setShowAllBlueprints(savedToggleState === '1')
+    }
+  }, [])
+
+  // Save toggle state to localStorage
+  useEffect(() => {
+    localStorage.setItem('showAllBlueprints', showAllBlueprints ? '1' : '0')
+  }, [showAllBlueprints])
+
   // Helper functions
   const collectBaseResources = (componentName: string, quantity: number) => {
     const localMap: { [key: string]: number } = {}
@@ -403,7 +435,13 @@ export default function CalculatorPage() {
 
     const helper = (compName: string, qty: number) => {
       const isResource = resourcesList.includes(compName)
+      const isComponent = componentsList.includes(compName)
+      const isHQComponent = hqComponentsList.includes(compName)
       const sub = componentResources[compName]
+
+      if (isComponent) {
+        componentsMap[compName] = (componentsMap[compName] || 0) + qty
+      }
 
       if (!sub) {
         localMap[compName] = (localMap[compName] || 0) + qty
@@ -417,6 +455,32 @@ export default function CalculatorPage() {
 
     helper(componentName, quantity)
     return { resources: localMap, components: componentsMap }
+  }
+
+  const calculateCraftingTime = (resources: { [key: string]: number }, components: { [key: string]: number }, hqComponents: { [key: string]: number }, selectedItem: string, quantity: number) => {
+    let totalTime = 0
+    const breakdown: { name: string, count: number, timePerUnit: number, total: number }[] = []
+
+    const addTime = (name: string, count: number) => {
+      const timePerUnit = craftingTimes[name] || 0
+      totalTime += timePerUnit * count
+      if (timePerUnit > 0) {
+        breakdown.push({ name, count, timePerUnit, total: timePerUnit * count })
+      }
+    }
+
+    for (const [name, count] of Object.entries(resources)) addTime(name, count)
+    for (const [name, count] of Object.entries(components)) addTime(name, count)
+    for (const [name, count] of Object.entries(hqComponents)) addTime(name, count)
+    addTime(selectedItem, quantity) // Include final product time
+
+    return { totalTime, breakdown }
+  }
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m > 0 ? m + 'm ' : ''}${s}s`
   }
 
   const calculateResources = () => {
@@ -440,11 +504,15 @@ export default function CalculatorPage() {
         totalHQComponents[hqComponent] = (totalHQComponents[hqComponent] || 0) + hqQuantity
 
         if (hqComponent !== 'Special Rotor' && hqComponent !== 'Special Gun Barrel') {
-          const { resources: resMap } = collectBaseResources(hqComponent, hqQuantity)
+          const { resources: resMap, components: compMap } = collectBaseResources(hqComponent, hqQuantity)
           hqComponentBreakdown[hqComponent] = resMap
 
           for (const [res, qty] of Object.entries(resMap)) {
             totalResources[res] = (totalResources[res] || 0) + qty
+          }
+          
+          for (const [comp, qty] of Object.entries(compMap)) {
+            totalComponents[comp] = (totalComponents[comp] || 0) + qty
           }
         }
       }
@@ -476,6 +544,7 @@ export default function CalculatorPage() {
     }
 
     const materialRuns = calculateMaterialRuns(totalResources)
+    const craftingTimeInfo = calculateCraftingTime(totalResources, totalComponents, totalHQComponents, selectedItem, quantity)
 
     setResults({
       resources: totalResources,
@@ -483,7 +552,8 @@ export default function CalculatorPage() {
       hqComponents: totalHQComponents,
       hqBreakdown: hqComponentBreakdown,
       nonHQBreakdown: nonHQComponentBreakdown,
-      materialRuns
+      materialRuns,
+      craftingTime: craftingTimeInfo
     })
   }
 
@@ -525,7 +595,11 @@ export default function CalculatorPage() {
 
     const existing = kit.find(entry => entry.item === selectedItem && entry.category === selectedCategory)
     if (existing) {
-      existing.quantity += quantity
+      setKit(kit.map(entry => 
+        entry.item === selectedItem && entry.category === selectedCategory
+          ? { ...entry, quantity: entry.quantity + quantity }
+          : entry
+      ))
     } else {
       setKit([...kit, { category: selectedCategory, item: selectedItem, quantity }])
     }
@@ -550,6 +624,9 @@ export default function CalculatorPage() {
     const totalHQComponents: { [key: string]: number } = {}
     const hqComponentBreakdown: { [key: string]: { [key: string]: number } } = {}
     const nonHQComponentBreakdown: { [key: string]: { [key: string]: number } } = {}
+    
+    // Track all components needed for HQ components
+    const hqRequiredComponents: { [key: string]: number } = {}
 
     kit.forEach(entry => {
       const selectedCategoryData = itemComponents[entry.category]
@@ -567,12 +644,26 @@ export default function CalculatorPage() {
           totalHQComponents[hqComponent] = (totalHQComponents[hqComponent] || 0) + hqQuantity
 
           if (hqComponent !== 'Special Rotor' && hqComponent !== 'Special Gun Barrel') {
-            const { resources: resMap } = collectBaseResources(hqComponent, hqQuantity)
+            // Get the base components needed for this HQ component
+            if (componentResources[hqComponent]) {
+              for (const [baseComp, baseQty] of Object.entries(componentResources[hqComponent])) {
+                if (componentsList.includes(baseComp)) {
+                  // This is a regular component needed for the HQ component
+                  hqRequiredComponents[baseComp] = (hqRequiredComponents[baseComp] || 0) + baseQty * hqQuantity
+                }
+              }
+            }
+            
+            const { resources: resMap, components: compMap } = collectBaseResources(hqComponent, hqQuantity)
 
             hqComponentBreakdown[hqComponent] = hqComponentBreakdown[hqComponent] || {}
             for (const [res, qty] of Object.entries(resMap)) {
               hqComponentBreakdown[hqComponent][res] = (hqComponentBreakdown[hqComponent][res] || 0) + qty
               totalResources[res] = (totalResources[res] || 0) + qty
+            }
+            
+            for (const [comp, qty] of Object.entries(compMap)) {
+              totalComponents[comp] = (totalComponents[comp] || 0) + qty
             }
           }
         }
@@ -605,7 +696,30 @@ export default function CalculatorPage() {
       }
     })
 
+    // Add the components needed for HQ components to the total components
+    for (const [comp, qty] of Object.entries(hqRequiredComponents)) {
+      totalComponents[comp] = (totalComponents[comp] || 0) + qty
+    }
+
     const materialRuns = calculateMaterialRuns(totalResources)
+    
+    // Calculate crafting time for all items in the kit
+    let totalCraftingTime = 0
+    kit.forEach(entry => {
+      const timePerUnit = craftingTimes[entry.item] || 0
+      totalCraftingTime += timePerUnit * entry.quantity
+    })
+    
+    // Add time for components and resources
+    for (const [comp, qty] of Object.entries(totalComponents)) {
+      const timePerUnit = craftingTimes[comp] || 0
+      totalCraftingTime += timePerUnit * qty
+    }
+    
+    for (const [hqComp, qty] of Object.entries(totalHQComponents)) {
+      const timePerUnit = craftingTimes[hqComp] || 0
+      totalCraftingTime += timePerUnit * qty
+    }
 
     setResults({
       resources: totalResources,
@@ -613,7 +727,10 @@ export default function CalculatorPage() {
       hqComponents: totalHQComponents,
       hqBreakdown: hqComponentBreakdown,
       nonHQBreakdown: nonHQComponentBreakdown,
-      materialRuns
+      materialRuns,
+      craftingTime: {
+        totalTime: totalCraftingTime
+      }
     })
 
     setShowBreakdown(true)
@@ -823,6 +940,18 @@ export default function CalculatorPage() {
                         <li key={name} className="text-white/90">{name}: {qty}</li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {/* Crafting Time */}
+                {results.craftingTime && (
+                  <div className="mb-6">
+                    <h2 className="text-xl font-semibold text-primary-500 border-b border-gray-600 pb-2 mb-4">
+                      Estimated Crafting Time
+                    </h2>
+                    <p className="text-white font-semibold">
+                      {formatTime(Math.ceil(results.craftingTime.totalTime))} total
+                    </p>
                   </div>
                 )}
 
