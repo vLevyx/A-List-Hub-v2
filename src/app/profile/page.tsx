@@ -54,10 +54,22 @@ interface UserProfile {
   last_login: string | null
   revoked: boolean | null
   login_count: number | null
+  discord_id: string
+  username: string | null
+  hub_trial: boolean | null
+  trial_expiration: string | null
 }
 
 interface Blueprint {
+  id: string
+  discord_id: string | null
   blueprint_name: string
+  created_at: string | null
+}
+
+interface CombinedData {
+  profile: UserProfile | null
+  blueprints: Blueprint[]
 }
 
 export default function ProfilePage() {
@@ -73,70 +85,131 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error' | null, message: string }>({ type: null, message: '' })
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
-  // Load user profile data
-  const loadUserProfile = useCallback(async () => {
+  // Load user profile and blueprints data using the RPC function
+  const loadUserData = useCallback(async () => {
     if (!user) return
 
     try {
       const discordId = getDiscordId(user)
-      if (!discordId) return
-
-      const { data, error } = await supabase
-        .from('users')
-        .select('created_at, last_login, revoked, login_count')
-        .eq('discord_id', discordId)
-        .single()
-
-      if (error) {
-        console.error('Error fetching user profile:', error)
+      if (!discordId) {
+        setLoadError('Could not determine Discord ID')
+        setIsLoading(false)
         return
       }
 
-      setUserProfile(data)
+      console.log('Loading data for Discord ID:', discordId)
+
+      // Use the RPC function to get both profile and blueprints in one call
+      const { data, error } = await supabase.rpc(
+        'get_profile_and_blueprints',
+        { user_discord_id: discordId }
+      )
+
+      if (error) {
+        console.error('Error fetching user data:', error)
+        setLoadError('Failed to load user data')
+        setIsLoading(false)
+        return
+      }
+
+      console.log('Received data:', data)
+
+      // Parse the returned data
+      const combinedData = data as CombinedData
+      
+      if (combinedData.profile) {
+        setUserProfile(combinedData.profile)
+      }
+
+      if (combinedData.blueprints && Array.isArray(combinedData.blueprints)) {
+        const blueprintNames = combinedData.blueprints.map(bp => bp.blueprint_name)
+        setOwnedBlueprints(blueprintNames)
+        
+        // Initialize selected blueprints with owned ones and default categories
+        const initialSelected = new Set<string>()
+        
+        // Add owned blueprints
+        blueprintNames.forEach(name => initialSelected.add(name))
+        
+        // Add default categories
+        DEFAULT_ON_CATEGORIES.forEach(category => {
+          if (itemsByCategory[category]) {
+            itemsByCategory[category].forEach(item => initialSelected.add(item))
+          }
+        })
+        
+        setSelectedBlueprints(initialSelected)
+      }
+
+      setIsLoading(false)
     } catch (error) {
-      console.error('Failed to load user profile:', error)
+      console.error('Failed to load user data:', error)
+      setLoadError('An unexpected error occurred')
+      setIsLoading(false)
     }
   }, [user, supabase])
 
-  // Load user blueprints
-  const loadBlueprints = useCallback(async () => {
+  // Fallback method if RPC fails
+  const loadDataSeparately = useCallback(async () => {
     if (!user) return
 
     try {
       const discordId = getDiscordId(user)
-      if (!discordId) return
-
-      const { data, error } = await supabase
-        .from('user_blueprints')
-        .select('blueprint_name')
-        .eq('discord_id', discordId)
-
-      if (error) {
-        console.error('Error fetching blueprints:', error)
+      if (!discordId) {
+        setLoadError('Could not determine Discord ID')
+        setIsLoading(false)
         return
       }
 
-      const blueprintNames = data.map(bp => bp.blueprint_name)
-      setOwnedBlueprints(blueprintNames)
-      
-      // Initialize selected blueprints with owned ones and default categories
-      const initialSelected = new Set<string>()
-      
-      // Add owned blueprints
-      blueprintNames.forEach(name => initialSelected.add(name))
-      
-      // Add default categories
-      DEFAULT_ON_CATEGORIES.forEach(category => {
-        if (itemsByCategory[category]) {
-          itemsByCategory[category].forEach(item => initialSelected.add(item))
-        }
-      })
-      
-      setSelectedBlueprints(initialSelected)
+      console.log('Loading data separately for Discord ID:', discordId)
+
+      // Load profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('discord_id', discordId)
+        .single()
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Error fetching user profile:', profileError)
+      } else if (profileData) {
+        setUserProfile(profileData)
+      }
+
+      // Load blueprints
+      const { data: blueprintsData, error: blueprintsError } = await supabase
+        .from('user_blueprints')
+        .select('*')
+        .eq('discord_id', discordId)
+
+      if (blueprintsError) {
+        console.error('Error fetching blueprints:', blueprintsError)
+      } else if (blueprintsData) {
+        const blueprintNames = blueprintsData.map(bp => bp.blueprint_name)
+        setOwnedBlueprints(blueprintNames)
+        
+        // Initialize selected blueprints
+        const initialSelected = new Set<string>()
+        
+        // Add owned blueprints
+        blueprintNames.forEach(name => initialSelected.add(name))
+        
+        // Add default categories
+        DEFAULT_ON_CATEGORIES.forEach(category => {
+          if (itemsByCategory[category]) {
+            itemsByCategory[category].forEach(item => initialSelected.add(item))
+          }
+        })
+        
+        setSelectedBlueprints(initialSelected)
+      }
+
       setIsLoading(false)
     } catch (error) {
-      console.error('Failed to load blueprints:', error)
+      console.error('Failed to load data separately:', error)
+      setLoadError('An unexpected error occurred')
       setIsLoading(false)
     }
   }, [user, supabase])
@@ -144,12 +217,15 @@ export default function ProfilePage() {
   // Initialize data
   useEffect(() => {
     if (!loading && user) {
-      loadUserProfile()
-      loadBlueprints()
+      // Try the RPC function first, fall back to separate queries if it fails
+      loadUserData().catch(() => {
+        console.log('Falling back to separate queries')
+        loadDataSeparately()
+      })
     } else if (!loading && !user) {
       router.push('/')
     }
-  }, [loading, user, loadUserProfile, loadBlueprints, router])
+  }, [loading, user, loadUserData, loadDataSeparately, router])
 
   // Handle blueprint toggle
   const handleBlueprintToggle = (blueprint: string) => {
@@ -188,13 +264,18 @@ export default function ProfilePage() {
         return true
       })
       
+      console.log('Saving blueprints:', blueprintsToSave)
+      
       // Delete existing blueprints
       const { error: deleteError } = await supabase
         .from('user_blueprints')
         .delete()
         .eq('discord_id', discordId)
       
-      if (deleteError) throw deleteError
+      if (deleteError) {
+        console.error('Error deleting existing blueprints:', deleteError)
+        throw deleteError
+      }
       
       // Insert new blueprints
       if (blueprintsToSave.length > 0) {
@@ -207,9 +288,13 @@ export default function ProfilePage() {
           .from('user_blueprints')
           .insert(inserts)
         
-        if (insertError) throw insertError
+        if (insertError) {
+          console.error('Error inserting blueprints:', insertError)
+          throw insertError
+        }
       }
       
+      console.log('Blueprints saved successfully')
       setSaveStatus({ 
         type: 'success', 
         message: 'Blueprints saved successfully!' 
@@ -340,6 +425,23 @@ export default function ProfilePage() {
               <div className="text-[#a0a0a0] text-xs font-semibold uppercase tracking-wider mb-2">Login Count</div>
               <div className="text-white font-semibold">{userProfile?.login_count || 0}</div>
             </div>
+            
+            {userProfile?.hub_trial && (
+              <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-5 transition-all hover:bg-white/[0.05] hover:border-[#00c6ff]/20 hover:-translate-y-0.5">
+                <div className="text-[#a0a0a0] text-xs font-semibold uppercase tracking-wider mb-2">Trial Status</div>
+                <div>
+                  <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold ${
+                    userProfile.trial_expiration && new Date(userProfile.trial_expiration) > new Date()
+                      ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                  }`}>
+                    {userProfile.trial_expiration && new Date(userProfile.trial_expiration) > new Date()
+                      ? `Trial Active (Expires: ${new Date(userProfile.trial_expiration).toLocaleDateString()})`
+                      : 'Trial Expired'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           <button
@@ -368,6 +470,16 @@ export default function ProfilePage() {
           {isLoading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00c6ff]"></div>
+            </div>
+          ) : loadError ? (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg text-center mb-8">
+              {loadError}
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-4 px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+              >
+                Retry
+              </button>
             </div>
           ) : (
             <>
