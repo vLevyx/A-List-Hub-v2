@@ -107,15 +107,18 @@ export default function CodeLockSolverPage() {
     if (autoSolveThreshold > 0) {
       const offCount = newCells.filter(cell => !cell).length
       if (offCount >= autoSolveThreshold) {
-        solve()
+        // Use requestAnimationFrame to ensure the state is updated before solving
+        requestAnimationFrame(() => {
+          solve(newCells)
+        })
       }
     }
   }
 
-  const solve = () => {
+  const solve = (cellsToSolve = cells) => {
     if (isAnimating) return
 
-    const target = getTargetState()
+    const target = cellsToSolve.map(cell => cell ? 1 : 0)
     const allButtons = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
     // Try solutions from 0 to 9 button presses
@@ -230,7 +233,8 @@ export default function CodeLockSolverPage() {
           When robbing, you'll see a "Lights Out" puzzle on crates. You have <strong>3 seconds</strong> to view it before
           it resets.<br/><br/>
           <span className="text-[gold]">Use this tool on a second device</span> (like a phone or tablet). Tap the boxes on this
-          grid to match the <span className="text-[gold]">[OFF]</span> lights you see in-game.<br/><br/>
+          grid to match
+          the <span className="text-[gold]">[OFF]</span> lights you see in-game.<br/><br/>
           Tap "Solve" to view the solution. Then quickly tap the correct boxes in-game in the shown order to complete the
           puzzle.<br/><br/>
 
@@ -332,7 +336,7 @@ export default function CodeLockSolverPage() {
       {/* Buttons */}
       <div className="flex justify-center gap-4 mb-6 flex-wrap">
         <button
-          onClick={solve}
+          onClick={() => solve()}
           disabled={isAnimating}
           className="px-6 py-3 text-base md:text-lg font-semibold bg-[rgba(20,20,20,0.75)] backdrop-blur-xl border border-white/15 text-[#e0e0e0] rounded-xl shadow-md hover:bg-white/10 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
