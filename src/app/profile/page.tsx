@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { usePageTracking } from '@/hooks/usePageTracking'
 import { createClient } from '@/lib/supabase/client'
-import { getDiscordId, getUsername, getAvatarUrl } from '@/lib/utils'
+import { getDiscordId, getUsername, getAvatarUrl, formatDate, isSlowConnection } from '@/lib/utils'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 // Default categories that should be checked by default
 const DEFAULT_ON_CATEGORIES = ['Components', 'HQ Components']
@@ -49,6 +50,11 @@ const itemsByCategory = {
     'Ammo', 'Mechanical Component', 'Engine Part', 'Interior Part', 'Rotor']
 }
 
+// Local storage keys
+const PROFILE_CACHE_KEY = 'profile_data_cache'
+const BLUEPRINTS_CACHE_KEY = 'blueprints_cache'
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
 interface UserProfile {
   created_at: string | null
   last_login: string | null
@@ -72,34 +78,107 @@ interface CombinedData {
   blueprints: Blueprint[]
 }
 
+interface LoadingState {
+  profile: boolean
+  blueprints: boolean
+  saving: boolean
+}
+
+interface ErrorState {
+  profile: string | null
+  blueprints: string | null
+  saving: string | null
+}
+
 export default function ProfilePage() {
   usePageTracking()
   const router = useRouter()
-  const { user, loading, signOut } = useAuth()
+  const { user, loading: authLoading, signOut } = useAuth()
   const supabase = createClient()
 
-  // State
+  // Enhanced state management
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [ownedBlueprints, setOwnedBlueprints] = useState<string[]>([])
   const [selectedBlueprints, setSelectedBlueprints] = useState<Set<string>>(new Set())
-  const [isSaving, setIsSaving] = useState(false)
+  const [loadingState, setLoadingState] = useState<LoadingState>({
+    profile: true,
+    blueprints: true,
+    saving: false
+  })
+  const [errorState, setErrorState] = useState<ErrorState>({
+    profile: null,
+    blueprints: null,
+    saving: null
+  })
   const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error' | null, message: string }>({ type: null, message: '' })
-  const [isLoading, setIsLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
+  const [avatarLoaded, setAvatarLoaded] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
+  const [isSlowConn, setIsSlowConn] = useState(false)
+  
+  // Refs for tracking loading attempts and timeouts
+  const loadAttemptsRef = useRef<{profile: number, blueprints: number}>({profile: 0, blueprints: 0})
+  const timeoutsRef = useRef<{[key: string]: NodeJS.Timeout | null}>({})
+  const isMountedRef = useRef(true)
+  
+  // Check for slow connection
+  useEffect(() => {
+    setIsSlowConn(isSlowConnection())
+  }, [])
+  
+  // Clear all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false
+      Object.values(timeoutsRef.current).forEach(timeout => {
+        if (timeout) clearTimeout(timeout)
+      })
+    }
+  }, [])
 
   // Load user profile and blueprints data using the RPC function
-  const loadUserData = useCallback(async () => {
+  const loadUserData = useCallback(async (forceRefresh = false) => {
     if (!user) return
 
     try {
       const discordId = getDiscordId(user)
       if (!discordId) {
-        setLoadError('Could not determine Discord ID')
-        setIsLoading(false)
+        setErrorState(prev => ({ ...prev, profile: 'Could not determine Discord ID' }))
+        setLoadingState(prev => ({ ...prev, profile: false, blueprints: false }))
         return
       }
 
-      console.log('Loading data for Discord ID:', discordId)
+      // Check cache first if not forcing refresh
+      if (!forceRefresh) {
+        const cachedProfile = localStorage.getItem(PROFILE_CACHE_KEY)
+        const cachedBlueprints = localStorage.getItem(BLUEPRINTS_CACHE_KEY)
+        
+        if (cachedProfile && cachedBlueprints) {
+          try {
+            const { data: profileData, timestamp: profileTimestamp } = JSON.parse(cachedProfile)
+            const { data: blueprintsData, timestamp: blueprintsTimestamp } = JSON.parse(cachedBlueprints)
+            
+            const isProfileFresh = Date.now() - profileTimestamp < CACHE_TTL
+            const areBlueprintsFresh = Date.now() - blueprintsTimestamp < CACHE_TTL
+            
+            if (isProfileFresh && profileData.discord_id === discordId) {
+              setUserProfile(profileData)
+              setLoadingState(prev => ({ ...prev, profile: false }))
+            }
+            
+            if (areBlueprintsFresh) {
+              setOwnedBlueprints(blueprintsData)
+              initializeSelectedBlueprints(blueprintsData)
+              setLoadingState(prev => ({ ...prev, blueprints: false }))
+              
+              // If both are fresh, we can return early
+              if (isProfileFresh) return
+            }
+          } catch (error) {
+            console.error('Error parsing cached data:', error)
+            // Continue with API fetch if cache parsing fails
+          }
+        }
+      }
 
       // Use the RPC function to get both profile and blueprints in one call
       const { data, error } = await supabase.rpc(
@@ -109,45 +188,57 @@ export default function ProfilePage() {
 
       if (error) {
         console.error('Error fetching user data:', error)
-        setLoadError('Failed to load user data')
-        setIsLoading(false)
+        
+        // Increment attempt counter
+        loadAttemptsRef.current.profile++
+        
+        // Retry logic
+        if (loadAttemptsRef.current.profile < 3) {
+          timeoutsRef.current.profileRetry = setTimeout(() => {
+            if (isMountedRef.current) {
+              loadDataSeparately()
+            }
+          }, 1000 * loadAttemptsRef.current.profile)
+          return
+        }
+        
+        setErrorState(prev => ({ ...prev, profile: 'Failed to load user data' }))
+        setLoadingState(prev => ({ ...prev, profile: false, blueprints: false }))
         return
       }
-
-      console.log('Received data:', data)
 
       // Parse the returned data
       const combinedData = data as CombinedData
       
       if (combinedData.profile) {
         setUserProfile(combinedData.profile)
+        
+        // Cache profile data
+        localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({
+          data: combinedData.profile,
+          timestamp: Date.now()
+        }))
       }
 
       if (combinedData.blueprints && Array.isArray(combinedData.blueprints)) {
         const blueprintNames = combinedData.blueprints.map(bp => bp.blueprint_name)
         setOwnedBlueprints(blueprintNames)
         
-        // Initialize selected blueprints with owned ones and default categories
-        const initialSelected = new Set<string>()
+        // Cache blueprints data
+        localStorage.setItem(BLUEPRINTS_CACHE_KEY, JSON.stringify({
+          data: blueprintNames,
+          timestamp: Date.now()
+        }))
         
-        // Add owned blueprints
-        blueprintNames.forEach(name => initialSelected.add(name))
-        
-        // Add default categories
-        DEFAULT_ON_CATEGORIES.forEach(category => {
-          if (itemsByCategory[category]) {
-            itemsByCategory[category].forEach(item => initialSelected.add(item))
-          }
-        })
-        
-        setSelectedBlueprints(initialSelected)
+        // Initialize selected blueprints
+        initializeSelectedBlueprints(blueprintNames)
       }
 
-      setIsLoading(false)
+      setLoadingState(prev => ({ ...prev, profile: false, blueprints: false }))
     } catch (error) {
       console.error('Failed to load user data:', error)
-      setLoadError('An unexpected error occurred')
-      setIsLoading(false)
+      setErrorState(prev => ({ ...prev, profile: 'An unexpected error occurred', blueprints: 'An unexpected error occurred' }))
+      setLoadingState(prev => ({ ...prev, profile: false, blueprints: false }))
     }
   }, [user, supabase])
 
@@ -158,12 +249,10 @@ export default function ProfilePage() {
     try {
       const discordId = getDiscordId(user)
       if (!discordId) {
-        setLoadError('Could not determine Discord ID')
-        setIsLoading(false)
+        setErrorState(prev => ({ ...prev, profile: 'Could not determine Discord ID' }))
+        setLoadingState(prev => ({ ...prev, profile: false, blueprints: false }))
         return
       }
-
-      console.log('Loading data separately for Discord ID:', discordId)
 
       // Load profile
       const { data: profileData, error: profileError } = await supabase
@@ -174,9 +263,18 @@ export default function ProfilePage() {
 
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Error fetching user profile:', profileError)
+        setErrorState(prev => ({ ...prev, profile: 'Failed to load profile data' }))
       } else if (profileData) {
         setUserProfile(profileData)
+        
+        // Cache profile data
+        localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({
+          data: profileData,
+          timestamp: Date.now()
+        }))
       }
+
+      setLoadingState(prev => ({ ...prev, profile: false }))
 
       // Load blueprints
       const { data: blueprintsData, error: blueprintsError } = await supabase
@@ -186,49 +284,61 @@ export default function ProfilePage() {
 
       if (blueprintsError) {
         console.error('Error fetching blueprints:', blueprintsError)
+        setErrorState(prev => ({ ...prev, blueprints: 'Failed to load blueprints' }))
       } else if (blueprintsData) {
         const blueprintNames = blueprintsData.map(bp => bp.blueprint_name)
         setOwnedBlueprints(blueprintNames)
         
+        // Cache blueprints data
+        localStorage.setItem(BLUEPRINTS_CACHE_KEY, JSON.stringify({
+          data: blueprintNames,
+          timestamp: Date.now()
+        }))
+        
         // Initialize selected blueprints
-        const initialSelected = new Set<string>()
-        
-        // Add owned blueprints
-        blueprintNames.forEach(name => initialSelected.add(name))
-        
-        // Add default categories
-        DEFAULT_ON_CATEGORIES.forEach(category => {
-          if (itemsByCategory[category]) {
-            itemsByCategory[category].forEach(item => initialSelected.add(item))
-          }
-        })
-        
-        setSelectedBlueprints(initialSelected)
+        initializeSelectedBlueprints(blueprintNames)
       }
 
-      setIsLoading(false)
+      setLoadingState(prev => ({ ...prev, blueprints: false }))
     } catch (error) {
       console.error('Failed to load data separately:', error)
-      setLoadError('An unexpected error occurred')
-      setIsLoading(false)
+      setErrorState(prev => ({ 
+        ...prev, 
+        profile: prev.profile || 'An unexpected error occurred',
+        blueprints: prev.blueprints || 'An unexpected error occurred'
+      }))
+      setLoadingState(prev => ({ ...prev, profile: false, blueprints: false }))
     }
   }, [user, supabase])
 
+  // Initialize selected blueprints
+  const initializeSelectedBlueprints = useCallback((blueprintNames: string[]) => {
+    const initialSelected = new Set<string>()
+    
+    // Add owned blueprints
+    blueprintNames.forEach(name => initialSelected.add(name))
+    
+    // Add default categories
+    DEFAULT_ON_CATEGORIES.forEach(category => {
+      if (itemsByCategory[category]) {
+        itemsByCategory[category].forEach(item => initialSelected.add(item))
+      }
+    })
+    
+    setSelectedBlueprints(initialSelected)
+  }, [])
+
   // Initialize data
   useEffect(() => {
-    if (!loading && user) {
-      // Try the RPC function first, fall back to separate queries if it fails
-      loadUserData().catch(() => {
-        console.log('Falling back to separate queries')
-        loadDataSeparately()
-      })
-    } else if (!loading && !user) {
+    if (!authLoading && user) {
+      loadUserData()
+    } else if (!authLoading && !user) {
       router.push('/')
     }
-  }, [loading, user, loadUserData, loadDataSeparately, router])
+  }, [authLoading, user, loadUserData, router])
 
   // Handle blueprint toggle
-  const handleBlueprintToggle = (blueprint: string) => {
+  const handleBlueprintToggle = useCallback((blueprint: string) => {
     setSelectedBlueprints(prev => {
       const newSet = new Set(prev)
       if (newSet.has(blueprint)) {
@@ -238,14 +348,18 @@ export default function ProfilePage() {
       }
       return newSet
     })
-  }
+  }, [])
 
-  // Save blueprints
+  // Save blueprints with optimistic updates and error handling
   const saveBlueprints = async () => {
     if (!user) return
     
-    setIsSaving(true)
+    setLoadingState(prev => ({ ...prev, saving: true }))
     setSaveStatus({ type: null, message: '' })
+    setErrorState(prev => ({ ...prev, saving: null }))
+    
+    // Store current selection for rollback if needed
+    const previousSelection = new Set(selectedBlueprints)
     
     try {
       const discordId = getDiscordId(user)
@@ -264,7 +378,8 @@ export default function ProfilePage() {
         return true
       })
       
-      console.log('Saving blueprints:', blueprintsToSave)
+      // Optimistic update
+      setOwnedBlueprints(blueprintsToSave)
       
       // Delete existing blueprints
       const { error: deleteError } = await supabase
@@ -294,33 +409,46 @@ export default function ProfilePage() {
         }
       }
       
-      console.log('Blueprints saved successfully')
+      // Update cache
+      localStorage.setItem(BLUEPRINTS_CACHE_KEY, JSON.stringify({
+        data: blueprintsToSave,
+        timestamp: Date.now()
+      }))
+      
       setSaveStatus({ 
         type: 'success', 
         message: 'Blueprints saved successfully!' 
       })
       
-      // Update owned blueprints
-      setOwnedBlueprints(blueprintsToSave)
-      
     } catch (error) {
       console.error('Failed to save blueprints:', error)
+      
+      // Rollback to previous selection
+      setSelectedBlueprints(previousSelection)
+      
       setSaveStatus({ 
         type: 'error', 
         message: 'Failed to save blueprints. Please try again.' 
       })
+      
+      setErrorState(prev => ({ 
+        ...prev, 
+        saving: error instanceof Error ? error.message : 'Unknown error occurred'
+      }))
     } finally {
-      setIsSaving(false)
+      setLoadingState(prev => ({ ...prev, saving: false }))
       
       // Clear status after 3 seconds
-      setTimeout(() => {
-        setSaveStatus({ type: null, message: '' })
+      timeoutsRef.current.statusClear = setTimeout(() => {
+        if (isMountedRef.current) {
+          setSaveStatus({ type: null, message: '' })
+        }
       }, 3000)
     }
   }
 
   // Calculate blueprint counts
-  const getBlueprintCounts = () => {
+  const getBlueprintCounts = useCallback(() => {
     // Count only non-default category blueprints
     const filteredBlueprints = Object.entries(itemsByCategory)
       .filter(([category]) => !DEFAULT_ON_CATEGORIES.includes(category))
@@ -334,18 +462,23 @@ export default function ProfilePage() {
       total: filteredBlueprints.length,
       selected: selectedCount
     }
-  }
+  }, [selectedBlueprints])
 
   const { total, selected } = getBlueprintCounts()
 
-  if (loading) {
+  // Render loading skeleton
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0a0a] to-[#1a1a1a]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00c6ff]"></div>
+        <div className="flex flex-col items-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-white/70 animate-pulse">Loading profile...</p>
+        </div>
       </div>
     )
   }
 
+  // Redirect if not logged in
   if (!user) {
     return null
   }
@@ -365,80 +498,132 @@ export default function ProfilePage() {
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00c6ff]/50 to-transparent"></div>
           
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
-            <div className="w-24 h-24 rounded-full border-3 border-[#00c6ff]/30 bg-gradient-to-br from-[#00c6ff] to-[#0072ff] overflow-hidden flex-shrink-0">
+            {/* Avatar with loading states */}
+            <div className="relative w-24 h-24 rounded-full border-3 border-[#00c6ff]/30 bg-gradient-to-br from-[#00c6ff]/20 to-[#0072ff]/20 overflow-hidden flex-shrink-0">
+              {loadingState.profile && !avatarLoaded && !avatarError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background-secondary/80 backdrop-blur-sm z-10">
+                  <LoadingSpinner size="sm" />
+                </div>
+              )}
+              
               <Image 
-                src={getAvatarUrl(user)} 
+                src={user ? getAvatarUrl(user) : 'https://cdn.discordapp.com/embed/avatars/0.png'} 
                 alt="Avatar" 
                 width={96} 
                 height={96} 
-                className="rounded-full object-cover"
+                className={`rounded-full object-cover transition-opacity duration-300 ${avatarLoaded ? 'opacity-100' : 'opacity-0'}`}
+                onLoad={() => setAvatarLoaded(true)}
+                onError={() => {
+                  setAvatarError(true)
+                  setAvatarLoaded(true)
+                }}
                 priority
               />
+              
+              {avatarError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background-secondary/80 text-white text-2xl font-bold">
+                  {getUsername(user)?.charAt(0)?.toUpperCase() || '?'}
+                </div>
+              )}
             </div>
             
             <div className="text-center md:text-left">
               <h1 className="text-3xl font-bold mb-1 bg-gradient-to-r from-white to-[#e8e8e8] inline-block text-transparent bg-clip-text break-words">
-                {getUsername(user)}
+                {loadingState.profile ? (
+                  <span className="inline-block w-48 h-8 bg-white/10 animate-pulse rounded"></span>
+                ) : (
+                  getUsername(user)
+                )}
               </h1>
               <div className="text-[#a0a0a0]">Discord Profile</div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {/* Discord ID */}
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-5 transition-all hover:bg-white/[0.05] hover:border-[#00c6ff]/20 hover:-translate-y-0.5">
               <div className="text-[#a0a0a0] text-xs font-semibold uppercase tracking-wider mb-2">Discord ID</div>
-              <div className="text-white font-semibold break-all">{getDiscordId(user)}</div>
+              <div className="text-white font-semibold break-all">
+                {loadingState.profile ? (
+                  <div className="w-full h-5 bg-white/10 animate-pulse rounded"></div>
+                ) : (
+                  getDiscordId(user)
+                )}
+              </div>
             </div>
             
+            {/* Status */}
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-5 transition-all hover:bg-white/[0.05] hover:border-[#00c6ff]/20 hover:-translate-y-0.5">
               <div className="text-[#a0a0a0] text-xs font-semibold uppercase tracking-wider mb-2">Status</div>
               <div>
-                <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold ${
-                  userProfile?.revoked 
-                    ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
-                    : 'bg-green-500/20 text-green-400 border border-green-500/30'
-                }`}>
-                  {userProfile?.revoked ? 'Access Revoked' : 'Whitelisted'}
-                </span>
+                {loadingState.profile ? (
+                  <div className="w-32 h-7 bg-white/10 animate-pulse rounded-full"></div>
+                ) : (
+                  <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold ${
+                    userProfile?.revoked 
+                      ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                      : 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  }`}>
+                    {userProfile?.revoked ? 'Access Revoked' : 'Whitelisted'}
+                  </span>
+                )}
               </div>
             </div>
             
+            {/* Member Since */}
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-5 transition-all hover:bg-white/[0.05] hover:border-[#00c6ff]/20 hover:-translate-y-0.5">
               <div className="text-[#a0a0a0] text-xs font-semibold uppercase tracking-wider mb-2">Member Since</div>
               <div className="text-white font-semibold">
-                {userProfile?.created_at 
-                  ? new Date(userProfile.created_at).toLocaleDateString() 
-                  : '—'}
+                {loadingState.profile ? (
+                  <div className="w-24 h-5 bg-white/10 animate-pulse rounded"></div>
+                ) : (
+                  formatDate(userProfile?.created_at)
+                )}
               </div>
             </div>
             
+            {/* Last Login */}
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-5 transition-all hover:bg-white/[0.05] hover:border-[#00c6ff]/20 hover:-translate-y-0.5">
               <div className="text-[#a0a0a0] text-xs font-semibold uppercase tracking-wider mb-2">Last Login</div>
               <div className="text-white font-semibold">
-                {userProfile?.last_login 
-                  ? new Date(userProfile.last_login).toLocaleDateString() 
-                  : '—'}
+                {loadingState.profile ? (
+                  <div className="w-24 h-5 bg-white/10 animate-pulse rounded"></div>
+                ) : (
+                  formatDate(userProfile?.last_login)
+                )}
               </div>
             </div>
             
+            {/* Login Count */}
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-5 transition-all hover:bg-white/[0.05] hover:border-[#00c6ff]/20 hover:-translate-y-0.5">
               <div className="text-[#a0a0a0] text-xs font-semibold uppercase tracking-wider mb-2">Login Count</div>
-              <div className="text-white font-semibold">{userProfile?.login_count || 0}</div>
+              <div className="text-white font-semibold">
+                {loadingState.profile ? (
+                  <div className="w-12 h-5 bg-white/10 animate-pulse rounded"></div>
+                ) : (
+                  userProfile?.login_count || 0
+                )}
+              </div>
             </div>
             
+            {/* Trial Status (conditional) */}
             {userProfile?.hub_trial && (
               <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-5 transition-all hover:bg-white/[0.05] hover:border-[#00c6ff]/20 hover:-translate-y-0.5">
                 <div className="text-[#a0a0a0] text-xs font-semibold uppercase tracking-wider mb-2">Trial Status</div>
                 <div>
-                  <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold ${
-                    userProfile.trial_expiration && new Date(userProfile.trial_expiration) > new Date()
-                      ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  }`}>
-                    {userProfile.trial_expiration && new Date(userProfile.trial_expiration) > new Date()
-                      ? `Trial Active (Expires: ${new Date(userProfile.trial_expiration).toLocaleDateString()})`
-                      : 'Trial Expired'}
-                  </span>
+                  {loadingState.profile ? (
+                    <div className="w-32 h-7 bg-white/10 animate-pulse rounded-full"></div>
+                  ) : (
+                    <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold ${
+                      userProfile.trial_expiration && new Date(userProfile.trial_expiration) > new Date()
+                        ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    }`}>
+                      {userProfile.trial_expiration && new Date(userProfile.trial_expiration) > new Date()
+                        ? `Trial Active (Expires: ${formatDate(userProfile.trial_expiration)})`
+                        : 'Trial Expired'}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -459,7 +644,11 @@ export default function ProfilePage() {
           <div className="text-center mb-8">
             <h2 className="text-2xl md:text-3xl font-bold mb-4">My Blueprints</h2>
             <div className="bg-[#00c6ff]/10 border border-[#00c6ff]/20 text-[#00c6ff] py-2 px-5 rounded-xl font-semibold text-sm inline-block mb-4">
-              📃 Selected: {selected} / {total} Blueprints
+              {loadingState.blueprints ? (
+                <div className="w-48 h-6 bg-white/10 animate-pulse rounded"></div>
+              ) : (
+                `📃 Selected: ${selected} / ${total} Blueprints`
+              )}
             </div>
             
             <p className="text-[#a0a0a0] text-base max-w-2xl mx-auto">
@@ -467,15 +656,26 @@ export default function ProfilePage() {
             </p>
           </div>
 
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00c6ff]"></div>
+          {/* Loading, Error, and Content States */}
+          {loadingState.profile || loadingState.blueprints ? (
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              <LoadingSpinner size="lg" />
+              <p className="text-white/70 animate-pulse">Loading blueprints...</p>
+              {isSlowConn && (
+                <p className="text-yellow-400/80 text-sm text-center max-w-md">
+                  Slow connection detected. This might take a moment...
+                </p>
+              )}
             </div>
-          ) : loadError ? (
+          ) : errorState.profile || errorState.blueprints ? (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg text-center mb-8">
-              {loadError}
+              {errorState.profile || errorState.blueprints}
               <button 
-                onClick={() => window.location.reload()}
+                onClick={() => {
+                  setErrorState({ profile: null, blueprints: null, saving: null })
+                  setLoadingState({ profile: true, blueprints: true, saving: false })
+                  loadUserData(true)
+                }}
                 className="mt-4 px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
               >
                 Retry
@@ -483,6 +683,7 @@ export default function ProfilePage() {
             </div>
           ) : (
             <>
+              {/* Blueprint Categories */}
               <div className="space-y-4 mb-8">
                 {Object.entries(itemsByCategory).map(([category, items]) => {
                   const isDefaultCategory = DEFAULT_ON_CATEGORIES.includes(category)
@@ -530,6 +731,7 @@ export default function ProfilePage() {
                 })}
               </div>
 
+              {/* Save Button and Status */}
               <div className="flex flex-col items-center">
                 {saveStatus.type && (
                   <div className={`mb-4 py-3 px-6 rounded-lg text-center ${
@@ -543,10 +745,17 @@ export default function ProfilePage() {
                 
                 <button
                   onClick={saveBlueprints}
-                  disabled={isSaving}
-                  className="bg-gradient-to-r from-[#00c6ff] to-[#0072ff] text-white border-none py-4 px-8 rounded-xl font-semibold text-base transition-all hover:-translate-y-0.5 hover:shadow-lg shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+                  disabled={loadingState.saving}
+                  className="bg-gradient-to-r from-[#00c6ff] to-[#0072ff] text-white border-none py-4 px-8 rounded-xl font-semibold text-base transition-all hover:-translate-y-0.5 hover:shadow-lg shadow-md disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 relative"
                 >
-                  {isSaving ? 'Saving...' : 'Save Blueprint Selection'}
+                  {loadingState.saving ? (
+                    <span className="flex items-center justify-center">
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      Saving...
+                    </span>
+                  ) : (
+                    'Save Blueprint Selection'
+                  )}
                 </button>
               </div>
             </>

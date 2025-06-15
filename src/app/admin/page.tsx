@@ -1,20 +1,31 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { usePageTracking } from '@/hooks/usePageTracking'
 import { createClient } from '@/lib/supabase/client'
+import { getDiscordId, formatDate, timeAgo } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { RefreshCw, Search, UserPlus, UserMinus, Clock, Filter, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
+
+// Admin IDs that have access
+const ADMIN_DISCORD_IDS = [
+  "154388953053659137",
+  "344637470908088322",
+  "796587763851198474",
+  "492053410967846933",
+  "487476487386038292"
+]
 
 // Types
 interface User {
-  id: string | null
+  id: string
+  discord_id: string
   username: string | null
   created_at: string
   revoked: boolean | null
-  discord_id: string
   last_login: string | null
   login_count: number | null
   hub_trial: boolean | null
@@ -42,2309 +53,1167 @@ interface PageSession {
   is_active: boolean | null
 }
 
+interface PageAnalytics {
+  page_path: string
+  time_spent_seconds: number
+  username: string | null
+  sessions: number
+}
+
+interface StatusMessage {
+  type: 'success' | 'error' | 'info' | 'warning' | null
+  message: string
+}
+
 export default function AdminPage() {
   usePageTracking()
   const router = useRouter()
   const { user, loading } = useAuth()
   const supabase = createClient()
-
-  // Admin IDs
-  const ADMIN_DISCORD_IDS = [
-    '154388953053659137',
-    '344637470908088322',
-    '796587763851198474',
-    '492053410967846933',
-    '487476487386038292'
-  ]
-
-  // State - Users
-  const [allUsers, setAllUsers] = useState<User[]>([])
+  
+  // State for users
+  const [users, setUsers] = useState<User[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
-  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set())
-  const [sessionHeartbeats, setSessionHeartbeats] = useState<Map<string, number>>(new Map())
-  const [showSidePanel, setShowSidePanel] = useState(false)
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
-  const [showBlueprintPopup, setShowBlueprintPopup] = useState(false)
-  const [userBlueprints, setUserBlueprints] = useState<string[]>([])
-
-  // State - Analytics
-  const [pageSessionData, setPageSessionData] = useState<PageSession[]>([])
-  const [userPageData, setUserPageData] = useState<Record<string, Record<string, number[]>>>({})
-  const [selectedAnalyticsUser, setSelectedAnalyticsUser] = useState<string>('')
-  const [minTime, setMinTime] = useState<number>(0)
-  const [sortBy, setSortBy] = useState<string>('time')
-  const [pagesLimit, setPagesLimit] = useState<number>(15)
-
-  // State - Audit Logs
-  const [auditLogs, setAuditLogs] = useState<AdminLog[]>([])
-  const [logsPage, setLogsPage] = useState<number>(0)
-  const [logsLimit, setLogsLimit] = useState<number>(15)
-  const [filterAdmin, setFilterAdmin] = useState<string>('')
-  const [filterAction, setFilterAction] = useState<string>('')
-  const [filterDesc, setFilterDesc] = useState<string>('')
-  const [filterTarget, setFilterTarget] = useState<string>('')
-
+  const [userSearch, setUserSearch] = useState('')
+  const [userStatusFilter, setUserStatusFilter] = useState<'all' | 'whitelisted' | 'revoked' | 'trial'>('all')
+  const [userPage, setUserPage] = useState(0)
+  const [userLimit, setUserLimit] = useState(10)
+  const [userCount, setUserCount] = useState(0)
+  
+  // State for logs
+  const [logs, setLogs] = useState<AdminLog[]>([])
+  const [logPage, setLogPage] = useState(0)
+  const [logLimit, setLogLimit] = useState(15)
+  const [logCount, setLogCount] = useState(0)
+  const [logFilters, setLogFilters] = useState({
+    admin: '',
+    action: '',
+    target: ''
+  })
+  
+  // State for analytics
+  const [pageAnalytics, setPageAnalytics] = useState<PageAnalytics[]>([])
+  const [topUsers, setTopUsers] = useState<{username: string, time_spent: number, sessions: number}[]>([])
+  const [selectedUser, setSelectedUser] = useState<string | null>(null)
+  const [userPageAnalytics, setUserPageAnalytics] = useState<PageAnalytics[]>([])
+  
+  // UI state
+  const [activeTab, setActiveTab] = useState('users')
+  const [loadingState, setLoadingState] = useState({
+    users: true,
+    logs: true,
+    analytics: true,
+    action: false,
+    refreshing: false
+  })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [statusMessage, setStatusMessage] = useState<StatusMessage>({ type: null, message: '' })
+  
   // Refs
-  const realtimeSubscriptionRef = useRef<any>(null)
-  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null)
-
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isRefreshingRef = useRef<boolean>(false)
+  
   // Check if user is admin
-  const isAdmin = useCallback(() => {
+  const checkAdminAccess = useCallback(() => {
     if (!user) return false
-    const discordId = user.user_metadata?.provider_id || user.user_metadata?.sub
-    return ADMIN_DISCORD_IDS.includes(discordId)
-  }, [user, ADMIN_DISCORD_IDS])
-
+    
+    const discordId = getDiscordId(user)
+    return !!discordId && ADMIN_DISCORD_IDS.includes(discordId)
+  }, [user])
+  
   // Redirect if not admin
   useEffect(() => {
-    if (!loading && !isAdmin()) {
+    if (!loading && !checkAdminAccess()) {
       router.push('/')
     }
-  }, [loading, isAdmin, router])
-
-  // Initialize
-  useEffect(() => {
-    if (!loading && isAdmin()) {
-      loadUsers()
-      setupRealtimeUpdates()
-      setupSessionTracking()
-      trackUserSessions()
-      startHeartbeatMonitoring()
-      loadAuditLogs()
-      fetchPageSessions()
-    }
-
-    return () => {
-      // Clean up
-      if (realtimeSubscriptionRef.current) {
-        realtimeSubscriptionRef.current.unsubscribe()
-      }
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current)
-      }
-    }
-  }, [loading, isAdmin])
-
-  // Setup realtime updates
-  const setupRealtimeUpdates = useCallback(() => {
-    realtimeSubscriptionRef.current = supabase
-      .channel('users_changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'users' },
-        (payload) => handleRealtimeUpdate(payload)
-      )
-      .subscribe()
-  }, [supabase])
-
-  // Handle realtime update
-  const handleRealtimeUpdate = useCallback((payload: any) => {
-    console.log('Real-time update:', payload)
-
-    switch (payload.eventType) {
-      case 'INSERT':
-        setAllUsers(prev => [...prev, payload.new])
-        logAuditEvent('create', `User ${payload.new.username || payload.new.discord_id} added`, payload.new.discord_id)
-        break
-      case 'UPDATE':
-        setAllUsers(prev => prev.map(u => u.discord_id === payload.new.discord_id ? payload.new : u))
-        logAuditEvent('update', `User ${payload.new.username || payload.new.discord_id} updated`, payload.new.discord_id)
-        break
-      case 'DELETE':
-        setAllUsers(prev => prev.filter(u => u.discord_id !== payload.old.discord_id))
-        logAuditEvent('delete', `User ${payload.old.username || payload.old.discord_id} deleted`, payload.old.discord_id)
-        break
-    }
-
-    applyFiltersAndSort()
-    updateStats()
-  }, [])
-
-  // Session tracking
-  const setupSessionTracking = useCallback(() => {
-    // Create sessions table for tracking online users
-    trackUserSessions()
-  }, [])
-
-  const trackUserSessions = useCallback(async () => {
+  }, [loading, checkAdminAccess, router])
+  
+  // Load users with pagination and filtering
+  const loadUsers = useCallback(async (page = 0, limit = 10, search = '', status = 'all') => {
+    setLoadingState(prev => ({ ...prev, users: true }))
+    
     try {
-      // Get current sessions from users who logged in within the last 5 minutes
-      const { data: recentLogins } = await supabase
+      let query = supabase
         .from('users')
-        .select('discord_id, last_login, username')
-        .gte('last_login', new Date(Date.now() - 5 * 60 * 1000).toISOString()) // Last 5 minutes
-
-      if (recentLogins) {
-        // Clear existing online users first
-        const newOnlineUsers = new Set<string>()
-        const newSessionHeartbeats = new Map<string, number>()
-
-        recentLogins.forEach(user => {
-          newOnlineUsers.add(user.discord_id)
-          newSessionHeartbeats.set(user.discord_id, Date.now())
-        })
-
-        setOnlineUsers(newOnlineUsers)
-        setSessionHeartbeats(newSessionHeartbeats)
-
-        // Refresh the table display
-        applyFiltersAndSort()
+        .select('*', { count: 'exact' })
+      
+      // Apply status filter
+      if (status === 'whitelisted') {
+        query = query.eq('revoked', false)
+      } else if (status === 'revoked') {
+        query = query.eq('revoked', true)
+      } else if (status === 'trial') {
+        query = query.eq('hub_trial', true)
       }
-    } catch (error) {
-      console.error('Session tracking error:', error)
-    }
-  }, [supabase])
-
-  const startHeartbeatMonitoring = useCallback(() => {
-    heartbeatIntervalRef.current = setInterval(() => {
-      const now = Date.now()
-      const timeout = 10 * 60 * 1000 // 10 minutes timeout
-
-      setSessionHeartbeats(prev => {
-        const newHeartbeats = new Map(prev)
-        const newOnlineUsers = new Set(onlineUsers)
-
-        for (const [userId, lastSeen] of prev.entries()) {
-          if (now - lastSeen > timeout) {
-            newHeartbeats.delete(userId)
-            newOnlineUsers.delete(userId)
-          }
-        }
-
-        setOnlineUsers(newOnlineUsers)
-        return newHeartbeats
-      })
-
-      updateStats()
-      applyFiltersAndSort() // Refresh table to show status changes
-    }, 15000) // Check every 15 seconds
-  }, [onlineUsers])
-
-  // Audit logging
-  const logAuditEvent = useCallback(async (action: string, description: string, userId: string | null = null) => {
-    try {
-      const session = await supabase.auth.getSession()
-      const adminId = session?.data?.session?.user?.user_metadata?.provider_id
-      const adminName = session?.data?.session?.user?.user_metadata?.full_name || 'Unknown'
-
-      const { error } = await supabase.from('admin_logs').insert([{
-        action,
-        description,
-        admin_id: adminId,
-        admin_name: adminName,
-        target_discord_id: userId,
-        created_at: new Date().toISOString()
-      }])
-
-      if (error) throw error
-
-      // Optionally re-fetch logs so UI stays fresh
-      loadAuditLogs()
-
-    } catch (err) {
-      console.error('Failed to log audit event:', err)
-    }
-  }, [supabase])
-
-  const loadAuditLogs = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('admin_logs')
-        .select('*')
+      
+      // Apply search filter if provided
+      if (search) {
+        query = query.or(`username.ilike.%${search}%,discord_id.ilike.%${search}%`)
+      }
+      
+      // Get count first
+      const { count, error: countError } = await query
+      
+      if (countError) {
+        console.error('Error getting user count:', countError)
+        return
+      }
+      
+      setUserCount(count || 0)
+      
+      // Then get paginated data
+      const { data, error } = await query
         .order('created_at', { ascending: false })
-        .limit(50)
-
-      if (error) throw error
-
-      setAuditLogs(data || [])
-
+        .range(page * limit, (page * limit) + limit - 1)
+      
+      if (error) {
+        console.error('Error loading users:', error)
+        return
+      }
+      
+      setUsers(data || [])
+      setFilteredUsers(data || [])
     } catch (error) {
-      console.error('Error loading audit logs:', error)
-    }
-  }, [supabase])
-
-  // Data loading and management
-  const loadUsers = useCallback(async () => {
-    if (isLoading) return
-
-    setIsLoading(true)
-    setIsRefreshing(true)
-
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      setAllUsers(data || [])
-      applyFiltersAndSort()
-      updateStats()
-
-    } catch (error) {
-      console.error('Error loading users:', error)
-      showToast('Failed to load users', 'error')
+      console.error('Failed to load users:', error)
     } finally {
-      setIsLoading(false)
-      setIsRefreshing(false)
-    }
-  }, [isLoading, supabase])
-
-  // User management functions
-  const addUser = useCallback(async () => {
-    const discordIdInput = document.getElementById('newDiscordId') as HTMLInputElement
-    const usernameInput = document.getElementById('newUsername') as HTMLInputElement
-    
-    const discordId = discordIdInput?.value.trim()
-    const username = usernameInput?.value.trim()
-
-    if (!discordId) {
-      showToast('Discord ID is required', 'error')
-      return
-    }
-
-    if (allUsers.some(u => u.discord_id === discordId)) {
-      showToast('User already exists', 'info')
-      return
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .insert([{
-          discord_id: discordId,
-          username: username || null,
-          revoked: false,
-          created_at: new Date().toISOString()
-        }])
-        .select()
-
-      if (error) throw error
-
-      if (discordIdInput) discordIdInput.value = ''
-      if (usernameInput) usernameInput.value = ''
-
-      showToast('User whitelisted successfully', 'success')
-      logAuditEvent('whitelist', `User ${username || discordId} whitelisted`, discordId)
-
-    } catch (error) {
-      console.error('Error adding user:', error)
-      showToast('Failed to whitelist user', 'error')
-    }
-  }, [allUsers, supabase, logAuditEvent])
-
-  const updateUserStatus = useCallback(async (discordId: string, revoked: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ revoked })
-        .eq('discord_id', discordId)
-
-      if (error) throw error
-
-      const action = revoked ? 'revoke' : 'whitelist'
-      const actionText = revoked ? 'revoked' : 'whitelisted'
-      const user = allUsers.find(u => u.discord_id === discordId)
-      showToast(`User ${actionText} successfully`, 'success')
-      logAuditEvent(action, `${revoked ? 'Revoke' : 'Whitelist'} action performed`, discordId)
-
-      // Ensure all views reflect the update instantly
-      await Promise.all([
-        trackUserSessions(), // Update "Online" badge state
-        loadUsers()          // Reload table & stats
-      ])
-
-      // Optionally update the open side panel if user is visible
-      if (selectedUser?.discord_id === discordId) {
-        setSelectedUser(allUsers.find(u => u.discord_id === discordId) || null)
-        renderUserPanel()
-      }
-
-    } catch (error) {
-      console.error('Error updating user status:', error)
-      showToast('Failed to update user status', 'error')
-    }
-  }, [allUsers, supabase, logAuditEvent, selectedUser, trackUserSessions, loadUsers])
-
-  const updateTrialTime = useCallback(async (discordId: string, days: number) => {
-    const trialExpiration = new Date()
-    trialExpiration.setDate(trialExpiration.getDate() + days)
-
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({
-          hub_trial: true,
-          trial_expiration: trialExpiration.toISOString()
-        })
-        .eq('discord_id', discordId)
-
-      if (error) throw error
-
-      const user = allUsers.find(u => u.discord_id === discordId)
-      showToast(`Trial extended by ${days} days`, 'success')
-      logAuditEvent('trial', `${days} Day Trial action performed`, discordId)
-
-      // Ensure all views reflect the update instantly
-      await Promise.all([
-        trackUserSessions(), // Update "Online" badge state
-        loadUsers()          // Reload table & stats
-      ])
-
-      // Optionally update the open side panel if user is visible
-      if (selectedUser?.discord_id === discordId) {
-        setSelectedUser(allUsers.find(u => u.discord_id === discordId) || null)
-        renderUserPanel()
-      }
-
-    } catch (error) {
-      console.error('Error updating trial:', error)
-      showToast('Failed to update trial', 'error')
-    }
-  }, [allUsers, supabase, logAuditEvent, selectedUser, trackUserSessions, loadUsers])
-
-  const convertTrialToLifetime = useCallback(async (discordId: string) => {
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({
-          revoked: false,
-          hub_trial: false,
-          trial_expiration: null
-        })
-        .eq('discord_id', discordId)
-
-      if (error) throw error
-
-      showToast('User converted to lifetime access', 'success')
-      logAuditEvent('whitelist', 'Trial converted to lifetime access', discordId)
-
-      // Ensure all views reflect the update instantly
-      await Promise.all([
-        trackUserSessions(),
-        loadUsers()
-      ])
-
-      // Update the open side panel if user is visible
-      if (selectedUser?.discord_id === discordId) {
-        setSelectedUser(allUsers.find(u => u.discord_id === discordId) || null)
-        renderUserPanel()
-      }
-
-    } catch (error) {
-      console.error('Error converting trial to lifetime:', error)
-      showToast('Failed to convert trial to lifetime', 'error')
-    }
-  }, [allUsers, supabase, logAuditEvent, selectedUser, trackUserSessions, loadUsers])
-
-  const deleteUser = useCallback(async (discordId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return
-    }
-
-    try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('discord_id', discordId)
-
-      if (error) throw error
-
-      const user = allUsers.find(u => u.discord_id === discordId)
-      showToast('User deleted successfully', 'success')
-      logAuditEvent('delete', `User ${user?.username || discordId} deleted`, discordId)
-
-      // Close side panel if the deleted user was selected
-      if (selectedUser?.discord_id === discordId) {
-        setShowSidePanel(false)
-        setSelectedUser(null)
-      }
-
-    } catch (error) {
-      console.error('Error deleting user:', error)
-      showToast('Failed to delete user', 'error')
-    }
-  }, [allUsers, supabase, logAuditEvent, selectedUser])
-
-  // Bulk operations
-  const bulkWhitelist = useCallback(async () => {
-    if (selectedUsers.size === 0) {
-      showToast('No users selected', 'info')
-      return
-    }
-
-    if (!confirm(`Whitelist ${selectedUsers.size} selected users?`)) {
-      return
-    }
-
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ revoked: false })
-        .in('discord_id', Array.from(selectedUsers))
-
-      if (error) throw error
-
-      showToast(`${selectedUsers.size} users whitelisted`, 'success')
-      logAuditEvent('bulk_whitelist', `Bulk Whitelist action performed`)
-      clearSelection()
-
-    } catch (error) {
-      console.error('Bulk whitelist error:', error)
-      showToast('Failed to whitelist users', 'error')
-    }
-  }, [selectedUsers, supabase, logAuditEvent])
-
-  const bulkRevoke = useCallback(async () => {
-    if (selectedUsers.size === 0) {
-      showToast('No users selected', 'info')
-      return
-    }
-
-    if (!confirm(`Revoke access for ${selectedUsers.size} selected users?`)) {
-      return
-    }
-
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ revoked: true })
-        .in('discord_id', Array.from(selectedUsers))
-
-      if (error) throw error
-
-      showToast(`${selectedUsers.size} users revoked`, 'success')
-      logAuditEvent('bulk_revoke', `Bulk Revoke action performed`)
-      clearSelection()
-
-    } catch (error) {
-      console.error('Bulk revoke error:', error)
-      showToast('Failed to revoke users', 'error')
-    }
-  }, [selectedUsers, supabase, logAuditEvent])
-
-  const bulkAddTrial = useCallback(async () => {
-    if (selectedUsers.size === 0) {
-      showToast('No users selected', 'info')
-      return
-    }
-
-    if (!confirm(`Add 7-day trial to ${selectedUsers.size} selected users?`)) {
-      return
-    }
-
-    const trialExpiration = new Date()
-    trialExpiration.setDate(trialExpiration.getDate() + 7)
-
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({
-          hub_trial: true,
-          trial_expiration: trialExpiration.toISOString()
-        })
-        .in('discord_id', Array.from(selectedUsers))
-
-      if (error) throw error
-
-      showToast(`7-day trial added for ${selectedUsers.size} users`, 'success')
-      logAuditEvent('update', `Bulk trial assignment for ${selectedUsers.size} users`)
-      clearSelection()
-
-    } catch (error) {
-      console.error('Bulk trial error:', error)
-      showToast('Failed to add trials', 'error')
-    }
-  }, [selectedUsers, supabase, logAuditEvent])
-
-  const bulkDelete = useCallback(async () => {
-    if (selectedUsers.size === 0) {
-      showToast('No users selected', 'info')
-      return
-    }
-
-    if (!confirm(`DELETE ${selectedUsers.size} selected users? This action cannot be undone!`)) {
-      return
-    }
-
-    try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .in('discord_id', Array.from(selectedUsers))
-
-      if (error) throw error
-
-      showToast(`${selectedUsers.size} users deleted`, 'success')
-      logAuditEvent('bulk_delete', `Bulk Delete action performed`)
-      clearSelection()
-
-    } catch (error) {
-      console.error('Bulk delete error:', error)
-      showToast('Failed to delete users', 'error')
-    }
-  }, [selectedUsers, supabase, logAuditEvent])
-
-  const clearSelection = useCallback(() => {
-    setSelectedUsers(new Set())
-    const selectAllCheckbox = document.getElementById('selectAll') as HTMLInputElement
-    if (selectAllCheckbox) selectAllCheckbox.checked = false
-    
-    document.querySelectorAll('.user-checkbox').forEach(cb => {
-      (cb as HTMLInputElement).checked = false
-    })
-    
-    updateBulkActions()
-  }, [])
-
-  const updateBulkActions = useCallback(() => {
-    const selectedCount = document.getElementById('selectedCount')
-    if (selectedCount) {
-      selectedCount.textContent = selectedUsers.size.toString()
-    }
-
-    const bulkActions = document.getElementById('bulkActions')
-    if (bulkActions) {
-      bulkActions.classList.toggle('show', selectedUsers.size > 0)
-    }
-  }, [selectedUsers.size])
-
-  // Filtering and sorting
-  const applyFiltersAndSort = useCallback(() => {
-    let filtered = [...allUsers]
-
-    // Apply search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase()
-      filtered = filtered.filter(user =>
-        user.discord_id.toLowerCase().includes(term) ||
-        (user.username && user.username.toLowerCase().includes(term))
-      )
-    }
-
-    // Apply status filter
-    const statusFilter = (document.getElementById('filterStatus') as HTMLSelectElement)?.value
-    if (statusFilter && statusFilter !== 'all') {
-      switch (statusFilter) {
-        case 'whitelisted':
-          filtered = filtered.filter(user => !user.revoked)
-          break
-        case 'revoked':
-          filtered = filtered.filter(user => user.revoked)
-          break
-        case 'trial':
-          filtered = filtered.filter(user => user.hub_trial &&
-            user.trial_expiration && new Date(user.trial_expiration) > new Date())
-          break
-      }
-    }
-
-    // Apply activity filter
-    const activityFilter = (document.getElementById('filterActivity') as HTMLSelectElement)?.value
-    if (activityFilter && activityFilter !== 'all') {
-      const now = new Date()
-      switch (activityFilter) {
-        case 'active_24h':
-          filtered = filtered.filter(user =>
-            user.last_login && new Date(user.last_login) > new Date(now.getTime() - 24 * 60 * 60 * 1000))
-          break
-        case 'active_7d':
-          filtered = filtered.filter(user =>
-            user.last_login && new Date(user.last_login) > new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000))
-          break
-        case 'active_30d':
-          filtered = filtered.filter(user =>
-            user.last_login && new Date(user.last_login) > new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000))
-          break
-        case 'never_logged':
-          filtered = filtered.filter(user => !user.last_login)
-          break
-      }
-    }
-
-    // Apply type filter
-    const typeFilter = (document.getElementById('filterType') as HTMLSelectElement)?.value
-    if (typeFilter && typeFilter !== 'all') {
-      switch (typeFilter) {
-        case 'admin':
-          filtered = filtered.filter(user => ADMIN_DISCORD_IDS.includes(user.discord_id))
-          break
-        case 'regular':
-          filtered = filtered.filter(user =>
-            !ADMIN_DISCORD_IDS.includes(user.discord_id) && !user.hub_trial)
-          break
-        case 'trial':
-          filtered = filtered.filter(user => user.hub_trial)
-          break
-      }
-    }
-
-    // Apply date range filter
-    const dateFilter = (document.getElementById('filterDateRange') as HTMLSelectElement)?.value
-    if (dateFilter && dateFilter !== 'all') {
-      const now = new Date()
-      let startDate: Date | undefined
-
-      switch (dateFilter) {
-        case 'today':
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-          break
-        case 'week':
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-          break
-        case 'month':
-          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-          break
-        case 'quarter':
-          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
-          break
-      }
-
-      if (startDate) {
-        filtered = filtered.filter(user =>
-          user.created_at && new Date(user.created_at) >= startDate!)
-      }
-    }
-
-    // Apply sorting
-    const sortBy = (document.getElementById('sortBy') as HTMLSelectElement)?.value || 'last_login'
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'username':
-          return (a.username || '').localeCompare(b.username || '')
-        case 'login_count':
-          return (b.login_count || 0) - (a.login_count || 0)
-        case 'created_at':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        case 'trial_expiration':
-          const aExp = a.trial_expiration ? new Date(a.trial_expiration).getTime() : 0
-          const bExp = b.trial_expiration ? new Date(b.trial_expiration).getTime() : 0
-          return bExp - aExp
-        default: // last_login
-          const aLogin = a.last_login ? new Date(a.last_login).getTime() : 0
-          const bLogin = b.last_login ? new Date(b.last_login).getTime() : 0
-          return bLogin - aLogin
-      }
-    })
-
-    setFilteredUsers(filtered)
-  }, [allUsers, searchTerm, ADMIN_DISCORD_IDS])
-
-  // Analytics functions
-  const fetchPageSessions = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("page_sessions")
-        .select("page_path, time_spent_seconds, username")
-        .not("time_spent_seconds", "is", null)
-
-      if (error) throw error
-
-      // Process data for statistics
-      const sessions = data || []
-      const totals: Record<string, number> = {}
-      const users: Record<string, Record<string, number[]>> = {}
-      const pageCounts: Record<string, number> = {}
-
-      sessions.forEach(row => {
-        // Page totals
-        if (!totals[row.page_path]) {
-          totals[row.page_path] = 0
-          pageCounts[row.page_path] = 0
-        }
-        totals[row.page_path] += row.time_spent_seconds || 0
-        pageCounts[row.page_path]++
-
-        // User data
-        if (row.username) {
-          if (!users[row.username]) users[row.username] = {}
-          if (!users[row.username][row.page_path]) users[row.username][row.page_path] = []
-          users[row.username][row.page_path].push(row.time_spent_seconds || 0)
-        }
-      })
-
-      setPageSessionData(sessions)
-      setUserPageData(users)
-      updateAnalyticsStats(sessions, users)
-      renderTopPages(totals, pageCounts)
-      populateUserSelect(users)
-
-    } catch (error) {
-      console.error('Error fetching page sessions:', error)
+      setLoadingState(prev => ({ ...prev, users: false }))
     }
   }, [supabase])
-
-  const updateAnalyticsStats = useCallback((data: any[], users: Record<string, any>) => {
-    const totalUsers = Object.keys(users).length
-    const totalSessions = data.length
-    const totalTime = data.reduce((sum, row) => sum + (row.time_spent_seconds || 0), 0)
-    const avgSessionTime = totalSessions > 0 ? totalTime / totalSessions : 0
-    const uniquePages = new Set(data.map(row => row.page_path)).size
-
-    // Update DOM elements
-    const elements = {
-      'total-users': totalUsers,
-      'total-sessions': totalSessions,
-      'avg-session-time': `${(avgSessionTime / 60).toFixed(1)}m`,
-      'total-pages': uniquePages
-    }
-
-    Object.entries(elements).forEach(([id, value]) => {
-      const element = document.getElementById(id)
-      if (element) element.textContent = value.toString()
-    })
-  }, [])
-
-  const renderTopPages = useCallback((totals: Record<string, number>, pageCounts: Record<string, number>) => {
-    const limit = pagesLimit
-    const sorted = Object.entries(totals)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, limit)
-
-    const tbody = document.querySelector("#top-pages-table tbody")
-    if (tbody) {
-      tbody.innerHTML = sorted.map(([page, time], index) => `
-        <tr>
-          <td><strong>#${index + 1}</strong></td>
-          <td><span class="page-path">${page}</span></td>
-          <td><strong>${(time / 60).toFixed(1)} min</strong></td>
-          <td>${pageCounts[page]} sessions</td>
-        </tr>
-      `).join("")
-    }
-  }, [pagesLimit])
-
-  const populateUserSelect = useCallback((users: Record<string, any>) => {
-    const select = document.getElementById('user-select') as HTMLSelectElement
-    if (!select) return
+  
+  // Load logs with pagination and filtering
+  const loadLogs = useCallback(async (page = 0, limit = 15, filters = { admin: '', action: '', target: '' }) => {
+    setLoadingState(prev => ({ ...prev, logs: true }))
     
-    const currentValue = select.value
-
-    select.innerHTML = '<option value="">Select a user...</option>' +
-      Object.keys(users)
-        .sort()
-        .map(username => `<option value="${username}">${username}</option>`)
-        .join("")
-
-    if (currentValue && users[currentValue]) {
-      select.value = currentValue
+    try {
+      let query = supabase
+        .from('admin_logs')
+        .select('*', { count: 'exact' })
+      
+      // Apply filters
+      if (filters.admin) {
+        query = query.ilike('admin_name', `%${filters.admin}%`)
+      }
+      
+      if (filters.action) {
+        query = query.ilike('action', `%${filters.action}%`)
+      }
+      
+      if (filters.target) {
+        query = query.ilike('target_discord_id', `%${filters.target}%`)
+      }
+      
+      // Get count first
+      const { count, error: countError } = await query
+      
+      if (countError) {
+        console.error('Error getting log count:', countError)
+        return
+      }
+      
+      setLogCount(count || 0)
+      
+      // Then get paginated data
+      const { data, error } = await query
+        .order('created_at', { ascending: false })
+        .range(page * limit, (page * limit) + limit - 1)
+      
+      if (error) {
+        console.error('Error loading logs:', error)
+        return
+      }
+      
+      setLogs(data || [])
+    } catch (error) {
+      console.error('Failed to load logs:', error)
+    } finally {
+      setLoadingState(prev => ({ ...prev, logs: false }))
     }
-  }, [])
-
-  const renderUserTable = useCallback((userData: Record<string, number[]> | undefined, username: string) => {
-    const userStats = document.getElementById('user-stats')
-    const tbody = document.querySelector("#user-pages-table tbody")
+  }, [supabase])
+  
+  // Load analytics data
+  const loadAnalytics = useCallback(async () => {
+    setLoadingState(prev => ({ ...prev, analytics: true }))
     
-    if (!userStats || !tbody || !userData || !username) {
-      if (userStats) userStats.style.display = 'none'
-      if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Select a user to view their page analytics</td></tr>'
-      return
-    }
-
-    // Calculate user statistics
-    const entries = Object.entries(userData)
-    const totalSessions = entries.reduce((sum, [, sessions]) => sum + sessions.length, 0)
-    const totalTime = entries.reduce((sum, [, sessions]) => sum + sessions.reduce((s, t) => s + t, 0), 0)
-    const uniquePages = entries.length
-
-    // Update user stats display
-    const userTotalTime = document.getElementById('user-total-time')
-    const userTotalSessions = document.getElementById('user-total-sessions')
-    const userUniquePages = document.getElementById('user-unique-pages')
-    
-    if (userTotalTime) userTotalTime.textContent = `${(totalTime / 60).toFixed(1)}m`
-    if (userTotalSessions) userTotalSessions.textContent = totalSessions.toString()
-    if (userUniquePages) userUniquePages.textContent = uniquePages.toString()
-    if (userStats) userStats.style.display = 'block'
-
-    // Filter and sort data
-    const minTimeValue = minTime
-    const sortByValue = sortBy
-
-    let filteredEntries = entries
-      .map(([page, sessions]) => ({
-        page,
-        sessions: sessions.length,
-        totalTime: sessions.reduce((sum, time) => sum + time, 0),
-        avgTime: sessions.reduce((sum, time) => sum + time, 0) / sessions.length
+    try {
+      // Get page analytics
+      const { data: pageData, error: pageError } = await supabase
+        .from('page_sessions')
+        .select('page_path, time_spent_seconds, username')
+        .not('time_spent_seconds', 'is', null)
+      
+      if (pageError) {
+        console.error('Error loading page analytics:', pageError)
+        return
+      }
+      
+      // Process page data
+      const pageMap = new Map<string, { time: number, sessions: number, users: Set<string> }>()
+      
+      pageData?.forEach(session => {
+        const path = session.page_path
+        const time = session.time_spent_seconds || 0
+        const username = session.username
+        
+        if (!pageMap.has(path)) {
+          pageMap.set(path, { time: 0, sessions: 0, users: new Set() })
+        }
+        
+        const entry = pageMap.get(path)!
+        entry.time += time
+        entry.sessions += 1
+        if (username) entry.users.add(username)
+      })
+      
+      // Convert to array and sort by time spent
+      const pageAnalytics = Array.from(pageMap.entries()).map(([page_path, data]) => ({
+        page_path,
+        time_spent_seconds: data.time,
+        sessions: data.sessions,
+        username: null // Not used for aggregated data
       }))
-      .filter(entry => (entry.totalTime / 60) >= minTimeValue)
-
-    // Sort data
-    filteredEntries.sort((a, b) => {
-      switch (sortByValue) {
-        case 'sessions': return b.sessions - a.sessions
-        case 'page': return a.page.localeCompare(b.page)
-        case 'time':
-        default: return b.totalTime - a.totalTime
-      }
-    })
-
-    tbody.innerHTML = filteredEntries.length > 0
-      ? filteredEntries.map(entry => `
-          <tr>
-            <td><span class="page-path">${entry.page}</span></td>
-            <td>${entry.sessions}</td>
-            <td><strong>${(entry.totalTime / 60).toFixed(1)} min</strong></td>
-            <td>${(entry.avgTime / 60).toFixed(1)} min</td>
-          </tr>
-        `).join("")
-      : '<tr><td colspan="4" class="empty-state">No data matches the current filters</td></tr>'
-  }, [minTime, sortBy])
-
-  const fetchAuditLogs = useCallback(async () => {
-    try {
-      const limit = logsLimit
-      const offset = logsPage * logsLimit
-
-      const { data: logs, error } = await supabase
-        .from("admin_logs")
-        .select("*, target_discord_id")
-        .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1)
-
-      if (error) throw error
-
-      const discordIds = [...new Set(logs.map(log => log.target_discord_id).filter(Boolean))]
-      const { data: users } = await supabase
-        .from("users")
-        .select("discord_id, username")
-        .in("discord_id", discordIds)
-
-      const idToUsername = Object.fromEntries((users || []).map(u => [u.discord_id, u.username]))
-
-      const filters = {
-        admin: filterAdmin.toLowerCase(),
-        action: filterAction.toLowerCase(),
-        desc: filterDesc.toLowerCase(),
-        target: filterTarget.toLowerCase(),
-      }
-
-      const filtered = logs.filter(log =>
-        (!filters.admin || (log.admin_name?.toLowerCase() || '').includes(filters.admin)) &&
-        (!filters.action || (log.action?.toLowerCase() || '').includes(filters.action)) &&
-        (!filters.desc || (log.description?.toLowerCase() || '').includes(filters.desc)) &&
-        (!filters.target || (idToUsername[log.target_discord_id]?.toLowerCase() || '').includes(filters.target))
-      )
-
-      const tbody = document.querySelector("#audit-log-table tbody")
-      if (tbody) {
-        tbody.innerHTML = filtered.length > 0
-          ? filtered.map(log => {
-            const actionLower = (log.action || '').toLowerCase()
-            let statusClass = ''
-            
-            if (actionLower.includes('whitelist')) statusClass = 'status-whitelisted'
-            else if (actionLower.includes('revoke') || actionLower.includes('ban')) statusClass = 'status-revoked'
-            else if (actionLower.includes('trial')) statusClass = 'status-trial'
-            
-            return `
-              <tr>
-                <td><strong>${log.admin_name || 'Unknown'}</strong></td>
-                <td><span class="status-badge ${statusClass}">${log.action || 'Unknown'}</span></td>
-                <td>${log.description || 'No description'}</td>
-                <td>${idToUsername[log.target_discord_id] || 'N/A'}</td>
-                <td>${new Date(log.created_at || '').toLocaleString()}</td>
-              </tr>
-            `
-          }).join("")
-          : '<tr><td colspan="5" class="empty-state">No logs match the current filters</td></tr>'
-      }
-
-      // Update pagination
-      const pageInfo = document.getElementById('page-info')
-      const prevLogBtn = document.getElementById('prev-log') as HTMLButtonElement
-      const nextLogBtn = document.getElementById('next-log') as HTMLButtonElement
       
-      if (pageInfo) pageInfo.textContent = `Page ${logsPage + 1}`
-      if (prevLogBtn) prevLogBtn.disabled = logsPage === 0
-      if (nextLogBtn) nextLogBtn.disabled = filtered.length < logsLimit
-
+      pageAnalytics.sort((a, b) => b.time_spent_seconds - a.time_spent_seconds)
+      setPageAnalytics(pageAnalytics)
+      
+      // Process user data
+      const userMap = new Map<string, { time_spent: number, sessions: number }>()
+      
+      pageData?.forEach(session => {
+        if (!session.username) return
+        
+        if (!userMap.has(session.username)) {
+          userMap.set(session.username, { time_spent: 0, sessions: 0 })
+        }
+        
+        const entry = userMap.get(session.username)!
+        entry.time_spent += session.time_spent_seconds || 0
+        entry.sessions += 1
+      })
+      
+      // Convert to array and sort by time spent
+      const topUsers = Array.from(userMap.entries()).map(([username, data]) => ({
+        username,
+        time_spent: data.time_spent,
+        sessions: data.sessions
+      }))
+      
+      topUsers.sort((a, b) => b.time_spent - a.time_spent)
+      setTopUsers(topUsers.slice(0, 10)) // Top 10 users
+      
     } catch (error) {
-      console.error('Error fetching audit logs:', error)
-    }
-  }, [supabase, logsLimit, logsPage, filterAdmin, filterAction, filterDesc, filterTarget])
-
-  // User panel
-  const openUserPanel = useCallback((discordId: string) => {
-    const user = allUsers.find(u => u.discord_id === discordId)
-    if (!user) return
-
-    setSelectedUser(user)
-    renderUserPanel()
-    setShowSidePanel(true)
-  }, [allUsers])
-
-  const renderUserPanel = useCallback(async () => {
-    if (!selectedUser) return
-
-    const userInfoPanel = document.getElementById('userInfoPanel')
-    const actionButtons = document.getElementById('actionButtons')
-    
-    if (!userInfoPanel || !actionButtons) return
-
-    // Get blueprints for user
-    const blueprints = await getBlueprints(selectedUser.discord_id)
-    setUserBlueprints(blueprints)
-
-    // User info with better spacing
-    userInfoPanel.innerHTML = `
-      <h3>User Information</h3>
-      <div class="info-item">
-        <span class="info-label">Discord ID:</span>
-        <span class="info-value">${selectedUser.discord_id}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Username:</span>
-        <span class="info-value">${selectedUser.username || 'N/A'}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Status:</span>
-        <span class="info-value">
-          <span class="status-badge status-${selectedUser.revoked ? 'revoked' : 'whitelisted'}">
-            ${selectedUser.revoked ? 'REVOKED' : 'ACCESS'}
-          </span>
-        </span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Account Type:</span>
-        <span class="info-value">
-          ${ADMIN_DISCORD_IDS.includes(selectedUser.discord_id) ?
-            '<span class="admin-badge">ADMIN</span>' : 'Regular User'}
-        </span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Created:</span>
-        <span class="info-value">${formatDate(selectedUser.created_at)}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Last Login:</span>
-        <span class="info-value">${selectedUser.last_login ? formatDate(selectedUser.last_login) : 'Never'}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Login Count:</span>
-        <span class="info-value">${selectedUser.login_count || 0}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Trial Status:</span>
-        <span class="info-value">${getTrialStatus(selectedUser)}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Session:</span>
-        <span class="info-value">
-          <span class="status-badge status-${onlineUsers.has(selectedUser.discord_id) ? 'online' : 'offline'}">
-            ${onlineUsers.has(selectedUser.discord_id) ? 'ONLINE' : 'OFFLINE'}
-          </span>
-        </span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Blueprints:</span>
-        <span class="info-value">${Math.max(0, blueprints.length - 22)} Selected</span>
-      </div>
-    `
-
-    // Action buttons
-    actionButtons.innerHTML = `
-      <button class="action-btn action-${selectedUser.revoked ? 'success' : 'danger'}" 
-              onclick="document.dispatchEvent(new CustomEvent('updateUserStatus', { detail: { discordId: '${selectedUser.discord_id}', revoked: ${!selectedUser.revoked} } }))">
-        ${selectedUser.revoked ? 'Whitelist User' : 'Revoke Access'}
-      </button>
-      <button class="action-btn action-warning" 
-              style="background: #ffc107; color: #000;"
-              onclick="document.dispatchEvent(new CustomEvent('updateTrialTime', { detail: { discordId: '${selectedUser.discord_id}', days: 7 } }))">
-        Add 7 Day Trial
-      </button>
-      <button class="action-btn action-warning" 
-              style="background: #ffc107; color: #000;"
-              onclick="document.dispatchEvent(new CustomEvent('updateTrialTime', { detail: { discordId: '${selectedUser.discord_id}', days: 30 } }))">
-        Add 30 Day Trial
-      </button>
-      ${selectedUser.hub_trial && selectedUser.trial_expiration && new Date(selectedUser.trial_expiration) > new Date() ? `
-        <button class="action-btn action-primary" 
-                onclick="document.dispatchEvent(new CustomEvent('convertTrialToLifetime', { detail: { discordId: '${selectedUser.discord_id}' } }))">
-          Convert Trial to Lifetime
-        </button>
-      ` : ''}
-      <button class="action-btn action-primary" 
-              onclick="document.dispatchEvent(new CustomEvent('promptCustomTrial', { detail: { discordId: '${selectedUser.discord_id}' } }))">
-        Custom Trial Duration
-      </button>
-      <button class="action-btn action-danger" 
-              onclick="document.dispatchEvent(new CustomEvent('deleteUser', { detail: { discordId: '${selectedUser.discord_id}' } }))">
-        Delete User
-      </button>
-      <button class="action-btn action-secondary"
-              onclick="document.dispatchEvent(new CustomEvent('showBlueprints', { detail: { discordId: '${selectedUser.discord_id}' } }))">
-        Show Blueprints
-      </button>
-    `
-
-    updateAuditLogDisplay()
-  }, [selectedUser, ADMIN_DISCORD_IDS, onlineUsers])
-
-  const updateAuditLogDisplay = useCallback(() => {
-    const auditLogContainer = document.getElementById('auditLog')
-    if (!auditLogContainer || !selectedUser) return
-
-    const userLogs = auditLogs
-      .filter(log => !log.target_discord_id || log.target_discord_id === selectedUser.discord_id)
-      .slice(0, 20)
-
-    auditLogContainer.innerHTML = userLogs.map(log => {
-      const actionLower = (log.action || '').toLowerCase()
-      let iconClass = ''
-      
-      if (actionLower.includes('whitelist')) iconClass = 'whitelist'
-      else if (actionLower.includes('revoke')) iconClass = 'revoke'
-      else if (actionLower.includes('delete')) iconClass = 'delete'
-      else if (actionLower.includes('trial')) iconClass = 'trial'
-      else if (actionLower.includes('bulk_whitelist')) iconClass = 'bulk_whitelist'
-      else if (actionLower.includes('bulk_revoke')) iconClass = 'bulk_revoke'
-      else if (actionLower.includes('bulk_delete')) iconClass = 'bulk_delete'
-      else if (actionLower.includes('bulk_trial')) iconClass = 'bulk_trial'
-      
-      return `
-        <div class="audit-entry">
-          <div class="audit-icon ${iconClass}"></div>
-          <div class="audit-content">
-            <div class="audit-action">${log.description || 'No description'}</div>
-            <div class="audit-details">by ${log.admin_name || 'Unknown'}</div>
-            <div class="audit-time">${formatRelativeTime(new Date(log.created_at || ''))}</div>
-          </div>
-        </div>
-      `
-    }).join('')
-  }, [auditLogs, selectedUser])
-
-  const promptCustomTrial = useCallback((discordId: string) => {
-    const days = prompt('Enter number of days for trial:')
-    if (days && !isNaN(Number(days)) && parseInt(days) > 0) {
-      updateTrialTime(discordId, parseInt(days))
-    }
-  }, [updateTrialTime])
-
-  // Blueprint functions
-  const getBlueprints = useCallback(async (discordId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_blueprints')
-        .select('blueprint_name')
-        .eq('discord_id', discordId)
-
-      if (error) throw error
-      return data ? data.map(bp => bp.blueprint_name) : []
-    } catch (error) {
-      console.error('Error fetching blueprints:', error)
-      return []
+      console.error('Failed to load analytics:', error)
+    } finally {
+      setLoadingState(prev => ({ ...prev, analytics: false }))
     }
   }, [supabase])
-
-  // Selection management
-  const toggleUserSelection = useCallback((discordId: string) => {
-    setSelectedUsers(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(discordId)) {
-        newSet.delete(discordId)
-      } else {
-        newSet.add(discordId)
-      }
-      return newSet
-    })
+  
+  // Load user-specific page analytics
+  const loadUserPageAnalytics = useCallback(async (username: string) => {
+    if (!username) return
     
-    updateBulkActions()
-    updateSelectAllCheckbox()
-  }, [])
-
-  const toggleSelectAll = useCallback(() => {
-    const selectAll = document.getElementById('selectAll') as HTMLInputElement
-    const checkboxes = document.querySelectorAll('.user-checkbox') as NodeListOf<HTMLInputElement>
-
-    if (selectAll.checked) {
-      const newSelected = new Set<string>()
-      filteredUsers.forEach(user => {
-        newSelected.add(user.discord_id)
+    try {
+      const { data, error } = await supabase
+        .from('page_sessions')
+        .select('page_path, time_spent_seconds')
+        .eq('username', username)
+        .not('time_spent_seconds', 'is', null)
+      
+      if (error) {
+        console.error('Error loading user page analytics:', error)
+        return
+      }
+      
+      // Process page data for this user
+      const pageMap = new Map<string, { time: number, sessions: number }>()
+      
+      data?.forEach(session => {
+        const path = session.page_path
+        const time = session.time_spent_seconds || 0
+        
+        if (!pageMap.has(path)) {
+          pageMap.set(path, { time: 0, sessions: 0 })
+        }
+        
+        const entry = pageMap.get(path)!
+        entry.time += time
+        entry.sessions += 1
       })
-      setSelectedUsers(newSelected)
-      checkboxes.forEach(cb => cb.checked = true)
-    } else {
-      setSelectedUsers(new Set())
-      checkboxes.forEach(cb => cb.checked = false)
+      
+      // Convert to array and sort by time spent
+      const userPageAnalytics = Array.from(pageMap.entries()).map(([page_path, data]) => ({
+        page_path,
+        time_spent_seconds: data.time,
+        sessions: data.sessions,
+        username
+      }))
+      
+      userPageAnalytics.sort((a, b) => b.time_spent_seconds - a.time_spent_seconds)
+      setUserPageAnalytics(userPageAnalytics)
+      
+    } catch (error) {
+      console.error('Failed to load user page analytics:', error)
     }
-    
-    updateBulkActions()
-  }, [filteredUsers])
-
-  const updateSelectAllCheckbox = useCallback(() => {
-    const selectAll = document.getElementById('selectAll') as HTMLInputElement
-    if (!selectAll) return
-
-    const visibleUsers = filteredUsers.length
-    const selectedVisibleUsers = filteredUsers.filter(user =>
-      selectedUsers.has(user.discord_id)
-    ).length
-
-    selectAll.checked = visibleUsers > 0 && selectedVisibleUsers === visibleUsers
-    selectAll.indeterminate = selectedVisibleUsers > 0 && selectedVisibleUsers < visibleUsers
-  }, [filteredUsers, selectedUsers])
-
-  // Statistics and updates
-  const updateStats = useCallback(() => {
-    const totalUsers = allUsers.length
-    const whitelistedUsers = allUsers.filter(u => !u.revoked).length
-    const revokedUsers = allUsers.filter(u => u.revoked).length
-    const trialUsers = allUsers.filter(u =>
-      u.hub_trial && u.trial_expiration && new Date(u.trial_expiration) > new Date()
-    ).length
-    const onlineCount = onlineUsers.size
-    const totalLogins = allUsers.reduce((sum, u) => sum + (u.login_count || 0), 0)
-    const activeUsers = allUsers.filter(u => isUserActive(u, '24h')).length
-
-    // Update dashboard stats
-    updateStatElement('totalUsers', totalUsers)
-    updateStatElement('whitelistedUsers', whitelistedUsers)
-    updateStatElement('revokedUsers', revokedUsers)
-    updateStatElement('trialUsers', trialUsers)
-    updateStatElement('onlineUsers', onlineCount)
-    updateStatElement('totalLogins', totalLogins)
-    updateStatElement('activeUsers', activeUsers)
-
-    // Update table info
-    const filteredCount = filteredUsers.length
-    const tableInfo = document.getElementById('tableInfo')
-    if (tableInfo) {
-      tableInfo.textContent = `Showing ${filteredCount} of ${totalUsers} users`
-    }
-  }, [allUsers, onlineUsers.size, filteredUsers.length])
-
-  const updateStatElement = useCallback((id: string, value: number | string) => {
-    const element = document.getElementById(id)
-    if (element) {
-      element.textContent = value.toString()
-    }
-  }, [])
-
-  // Utility functions
-  const formatDate = useCallback((dateString: string) => {
-    if (!dateString) return 'N/A'
-    const date = new Date(dateString)
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }, [])
-
-  const formatRelativeTime = useCallback((date: Date) => {
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMins / 60)
-    const diffDays = Math.floor(diffHours / 24)
-
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays < 7) return `${diffDays}d ago`
-
-    return formatDate(date.toISOString())
-  }, [formatDate])
-
-  const getTrialStatus = useCallback((user: User) => {
-    if (!user.hub_trial) return 'N/A'
-
-    if (!user.trial_expiration) {
-      return '<span class="trial-badge">TRIAL</span>'
-    }
-
-    const expiration = new Date(user.trial_expiration)
-    const now = new Date()
-
-    if (expiration > now) {
-      const daysLeft = Math.ceil((expiration.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-      return `<span class="trial-badge" style="white-space: nowrap;" title="Trial expires in ${daysLeft} days">TRIAL (${daysLeft}d)</span>`
-    } else {
-      return '<span class="status-badge status-revoked">EXPIRED</span>'
-    }
-  }, [])
-
-  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    // Create toast container if it doesn't exist
-    let toastContainer = document.getElementById('toastContainer')
-    if (!toastContainer) {
-      toastContainer = document.createElement('div')
-      toastContainer.id = 'toastContainer'
-      toastContainer.className = 'toast-container'
-      document.body.appendChild(toastContainer)
-    }
-
-    const toast = document.createElement('div')
-    toast.className = `toast toast-${type}`
-    toast.innerHTML = `
-      <div class="toast-content">
-        <span class="toast-icon">${type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ'}</span>
-        <span class="toast-message">${message}</span>
-      </div>
-      <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-    `
-
-    toastContainer.appendChild(toast)
-
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-      if (toast.parentElement) {
-        toast.remove()
-      }
-    }, 5000)
-  }, [])
-
-  const isUserActive = useCallback((user: User, period: string) => {
-    if (!user.last_login) return false
-
-    const loginDate = new Date(user.last_login)
-    const now = new Date()
-    const diffHours = (now.getTime() - loginDate.getTime()) / (1000 * 60 * 60)
-
-    switch (period) {
-      case '1h': return diffHours <= 1
-      case '24h': return diffHours <= 24
-      case '7d': return diffHours <= 168 // 7 * 24
-      case '30d': return diffHours <= 720 // 30 * 24
-      default: return false
-    }
-  }, [])
-
-  // Event handlers
+  }, [supabase])
+  
+  // Initialize data
   useEffect(() => {
-    // Custom event listeners for user panel actions
-    const updateUserStatusHandler = (e: CustomEvent) => {
-      const { discordId, revoked } = e.detail
-      updateUserStatus(discordId, revoked)
+    if (!loading && checkAdminAccess()) {
+      loadUsers(userPage, userLimit, userSearch, userStatusFilter)
+      loadLogs(logPage, logLimit, logFilters)
+      loadAnalytics()
     }
-
-    const updateTrialTimeHandler = (e: CustomEvent) => {
-      const { discordId, days } = e.detail
-      updateTrialTime(discordId, days)
+  }, [loading, checkAdminAccess, loadUsers, loadLogs, loadAnalytics, userPage, userLimit, userSearch, userStatusFilter, logPage, logLimit, logFilters])
+  
+  // Load user page analytics when user is selected
+  useEffect(() => {
+    if (selectedUser) {
+      loadUserPageAnalytics(selectedUser)
+    } else {
+      setUserPageAnalytics([])
     }
-
-    const convertTrialToLifetimeHandler = (e: CustomEvent) => {
-      const { discordId } = e.detail
-      convertTrialToLifetime(discordId)
-    }
-
-    const promptCustomTrialHandler = (e: CustomEvent) => {
-      const { discordId } = e.detail
-      promptCustomTrial(discordId)
-    }
-
-    const deleteUserHandler = (e: CustomEvent) => {
-      const { discordId } = e.detail
-      deleteUser(discordId)
-    }
-
-    const showBlueprintsHandler = (e: CustomEvent) => {
-      const { discordId } = e.detail
-      setShowBlueprintPopup(true)
-    }
-
-    document.addEventListener('updateUserStatus', updateUserStatusHandler as EventListener)
-    document.addEventListener('updateTrialTime', updateTrialTimeHandler as EventListener)
-    document.addEventListener('convertTrialToLifetime', convertTrialToLifetimeHandler as EventListener)
-    document.addEventListener('promptCustomTrial', promptCustomTrialHandler as EventListener)
-    document.addEventListener('deleteUser', deleteUserHandler as EventListener)
-    document.addEventListener('showBlueprints', showBlueprintsHandler as EventListener)
-
-    // Analytics event listeners
-    const userSelectElement = document.getElementById('user-select') as HTMLSelectElement
-    const minTimeElement = document.getElementById('min-time') as HTMLInputElement
-    const sortByElement = document.getElementById('sort-by') as HTMLSelectElement
-    const pagesLimitElement = document.getElementById('pages-limit') as HTMLSelectElement
+  }, [selectedUser, loadUserPageAnalytics])
+  
+  // Set up real-time subscriptions
+  useEffect(() => {
+    if (!checkAdminAccess()) return
     
-    if (userSelectElement) {
-      userSelectElement.addEventListener('change', (e) => {
-        setSelectedAnalyticsUser((e.target as HTMLSelectElement).value)
+    const usersChannel = supabase
+      .channel('admin-users-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        loadUsers(userPage, userLimit, userSearch, userStatusFilter)
       })
-    }
+      .subscribe()
     
-    if (minTimeElement) {
-      minTimeElement.addEventListener('input', (e) => {
-        setMinTime(parseFloat((e.target as HTMLInputElement).value) || 0)
+    const logsChannel = supabase
+      .channel('admin-logs-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_logs' }, () => {
+        loadLogs(logPage, logLimit, logFilters)
       })
-    }
+      .subscribe()
     
-    if (sortByElement) {
-      sortByElement.addEventListener('change', (e) => {
-        setSortBy((e.target as HTMLSelectElement).value)
-      })
-    }
-    
-    if (pagesLimitElement) {
-      pagesLimitElement.addEventListener('change', (e) => {
-        setPagesLimit(parseInt((e.target as HTMLSelectElement).value))
-      })
-    }
-
-    // Audit log event listeners
-    const prevLogBtn = document.getElementById('prev-log')
-    const nextLogBtn = document.getElementById('next-log')
-    const logsLimitElement = document.getElementById('logs-limit') as HTMLSelectElement
-    const filterAdminElement = document.getElementById('filter-admin') as HTMLInputElement
-    const filterActionElement = document.getElementById('filter-action') as HTMLInputElement
-    const filterDescElement = document.getElementById('filter-desc') as HTMLInputElement
-    const filterTargetElement = document.getElementById('filter-target') as HTMLInputElement
-    
-    if (prevLogBtn) {
-      prevLogBtn.addEventListener('click', () => {
-        if (logsPage > 0) {
-          setLogsPage(logsPage - 1)
+    const analyticsChannel = supabase
+      .channel('admin-analytics-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'page_sessions' }, () => {
+        // Don't reload analytics on every change to avoid excessive updates
+        if (!isRefreshingRef.current) {
+          isRefreshingRef.current = true
+          
+          if (refreshTimeoutRef.current) {
+            clearTimeout(refreshTimeoutRef.current)
+          }
+          
+          refreshTimeoutRef.current = setTimeout(() => {
+            loadAnalytics()
+            if (selectedUser) {
+              loadUserPageAnalytics(selectedUser)
+            }
+            isRefreshingRef.current = false
+          }, 5000) // Debounce analytics updates
         }
       })
-    }
+      .subscribe()
     
-    if (nextLogBtn) {
-      nextLogBtn.addEventListener('click', () => {
-        setLogsPage(logsPage + 1)
-      })
-    }
-    
-    if (logsLimitElement) {
-      logsLimitElement.addEventListener('change', (e) => {
-        setLogsLimit(parseInt((e.target as HTMLSelectElement).value))
-        setLogsPage(0)
-      })
-    }
-    
-    if (filterAdminElement) {
-      filterAdminElement.addEventListener('input', (e) => {
-        setFilterAdmin((e.target as HTMLInputElement).value)
-        setLogsPage(0)
-      })
-    }
-    
-    if (filterActionElement) {
-      filterActionElement.addEventListener('input', (e) => {
-        setFilterAction((e.target as HTMLInputElement).value)
-        setLogsPage(0)
-      })
-    }
-    
-    if (filterDescElement) {
-      filterDescElement.addEventListener('input', (e) => {
-        setFilterDesc((e.target as HTMLInputElement).value)
-        setLogsPage(0)
-      })
-    }
-    
-    if (filterTargetElement) {
-      filterTargetElement.addEventListener('input', (e) => {
-        setFilterTarget((e.target as HTMLInputElement).value)
-        setLogsPage(0)
-      })
-    }
-
     return () => {
-      document.removeEventListener('updateUserStatus', updateUserStatusHandler as EventListener)
-      document.removeEventListener('updateTrialTime', updateTrialTimeHandler as EventListener)
-      document.removeEventListener('convertTrialToLifetime', convertTrialToLifetimeHandler as EventListener)
-      document.removeEventListener('promptCustomTrial', promptCustomTrialHandler as EventListener)
-      document.removeEventListener('deleteUser', deleteUserHandler as EventListener)
-      document.removeEventListener('showBlueprints', showBlueprintsHandler as EventListener)
-    }
-  }, [
-    updateUserStatus, 
-    updateTrialTime, 
-    convertTrialToLifetime,
-    promptCustomTrial, 
-    deleteUser, 
-    logsPage
-  ])
-
-  // Effects for analytics
-  useEffect(() => {
-    renderUserTable(userPageData[selectedAnalyticsUser], selectedAnalyticsUser)
-  }, [selectedAnalyticsUser, minTime, sortBy, userPageData, renderUserTable])
-
-  useEffect(() => {
-    const totals: Record<string, number> = {}
-    const pageCounts: Record<string, number> = {}
-    
-    pageSessionData.forEach(row => {
-      if (!totals[row.page_path]) {
-        totals[row.page_path] = 0
-        pageCounts[row.page_path] = 0
+      supabase.removeChannel(usersChannel)
+      supabase.removeChannel(logsChannel)
+      supabase.removeChannel(analyticsChannel)
+      
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current)
       }
-      totals[row.page_path] += row.time_spent_seconds || 0
-      pageCounts[row.page_path]++
-    })
+    }
+  }, [checkAdminAccess, loadUsers, loadLogs, loadAnalytics, loadUserPageAnalytics, userPage, userLimit, userSearch, userStatusFilter, logPage, logLimit, logFilters, selectedUser, supabase])
+  
+  // Handle user search with debouncing
+  const handleUserSearch = (value: string) => {
+    setUserSearch(value)
     
-    renderTopPages(totals, pageCounts)
-  }, [pagesLimit, pageSessionData, renderTopPages])
-
-  // Effects for audit logs
-  useEffect(() => {
-    fetchAuditLogs()
-  }, [logsPage, logsLimit, filterAdmin, filterAction, filterDesc, filterTarget, fetchAuditLogs])
-
-  // Effects for filtering and sorting
-  useEffect(() => {
-    applyFiltersAndSort()
-  }, [searchTerm, applyFiltersAndSort])
-
-  // Render table
-  const renderTable = useCallback(() => {
-    const tbody = document.querySelector('#usersTable tbody')
-    if (!tbody) return
-
-    tbody.innerHTML = filteredUsers.map(user => `
-      <tr data-user-id="${user.discord_id}" onclick="document.dispatchEvent(new CustomEvent('openUserPanel', { detail: '${user.discord_id}' }))">
-        <td onclick="event.stopPropagation();">
-          <input
-            type="checkbox"
-            class="user-checkbox"
-            onchange="event.stopPropagation(); document.dispatchEvent(new CustomEvent('toggleUserSelection', { detail: '${user.discord_id}' }))"
-            ${selectedUsers.has(user.discord_id) ? 'checked' : ''}>
-        </td>
-        <td>
-          ${highlightSearchTerm(user.discord_id)}
-          ${ADMIN_DISCORD_IDS.includes(user.discord_id) ? '<span class="admin-badge">ADMIN</span>' : ''}
-        </td>
-        <td>${highlightSearchTerm(user.username || 'N/A')}</td>
-        <td>${formatDate(user.created_at)}</td>
-        <td>${user.last_login ? formatDate(user.last_login) : 'Never'}</td>
-        <td>${user.login_count || 0}</td>
-        <td>
-          <span class="status-badge status-${user.revoked ? 'revoked' : 'whitelisted'}">
-            ${user.revoked ? 'REVOKED' : 'ACCESS'}
-          </span>
-        </td>
-        <td>
-          ${getTrialStatus(user)}
-        </td>
-        <td>
-          <span class="status-badge status-${onlineUsers.has(user.discord_id) ? 'online' : 'offline'}">
-            ${onlineUsers.has(user.discord_id) ? 'ONLINE' : 'OFFLINE'}
-          </span>
-        </td>
-        <td onclick="event.stopPropagation()">
-          <div class="dropdown">
-            <button class="hamburger-icon" onclick="event.stopPropagation(); this.nextElementSibling.classList.toggle('show')">
-              ☰
-            </button>
-            <div class="dropdown-content">
-              <button onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('updateUserStatus', { detail: { discordId: '${user.discord_id}', revoked: ${!user.revoked} } }))">
-                ${user.revoked ? 'Whitelist' : 'Revoke'}
-              </button>
-              <button onclick="event.stopPropagation(); document.dispatchEvent(new CustomEvent('deleteUser', { detail: { discordId: '${user.discord_id}' } }))" class="delete-action">
-                Delete
-              </button>
-            </div>
-          </div>
-        </td>
-      </tr>
-    `).join('')
-  }, [filteredUsers, selectedUsers, ADMIN_DISCORD_IDS, onlineUsers, formatDate, getTrialStatus, highlightSearchTerm])
-
-  // Highlight search term in text
-  const highlightSearchTerm = useCallback((text: string) => {
-    if (!searchTerm || !text) return text
-    const regex = new RegExp(`(${searchTerm})`, 'gi')
-    return text.replace(regex, '<span class="search-highlight">$1</span>')
-  }, [searchTerm])
-
-  // Event handlers for custom events
-  useEffect(() => {
-    const openUserPanelHandler = (e: CustomEvent) => {
-      openUserPanel(e.detail)
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
     }
-
-    const toggleUserSelectionHandler = (e: CustomEvent) => {
-      toggleUserSelection(e.detail)
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      setUserPage(0) // Reset to first page
+      loadUsers(0, userLimit, value, userStatusFilter)
+    }, 300)
+  }
+  
+  // Handle log filters
+  const handleLogFilterChange = (key: keyof typeof logFilters, value: string) => {
+    setLogFilters(prev => ({ ...prev, [key]: value }))
+    setLogPage(0) // Reset to first page
+    loadLogs(0, logLimit, { ...logFilters, [key]: value })
+  }
+  
+  // Format time in minutes and seconds
+  const formatTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`
+    
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    
+    if (remainingSeconds === 0) return `${minutes}m`
+    return `${minutes}m ${remainingSeconds}s`
+  }
+  
+  // Admin actions
+  const performUserAction = async (action: string, userId: string, username: string) => {
+    if (!user) return
+    
+    setLoadingState(prev => ({ ...prev, action: true }))
+    setStatusMessage({ type: null, message: '' })
+    
+    try {
+      const adminId = getDiscordId(user)
+      const adminName = user.user_metadata?.full_name || user.user_metadata?.name || 'Admin'
+      
+      if (!adminId) {
+        throw new Error('Could not determine admin ID')
+      }
+      
+      let description = ''
+      let rpcFunction = ''
+      let rpcParams: any = {}
+      
+      switch (action) {
+        case 'WHITELIST':
+          description = `Whitelisted user ${username}`
+          rpcFunction = 'admin_whitelist_user'
+          rpcParams = { target_discord_id: userId }
+          break
+          
+        case 'REVOKE':
+          description = `Revoked access for user ${username}`
+          rpcFunction = 'admin_revoke_user'
+          rpcParams = { target_discord_id: userId }
+          break
+          
+        case 'TRIAL_7':
+          description = `Added 7-day trial for user ${username}`
+          rpcFunction = 'admin_add_trial'
+          rpcParams = { target_discord_id: userId, days: 7 }
+          break
+          
+        case 'TRIAL_30':
+          description = `Added 30-day trial for user ${username}`
+          rpcFunction = 'admin_add_trial'
+          rpcParams = { target_discord_id: userId, days: 30 }
+          break
+          
+        default:
+          throw new Error('Invalid action')
+      }
+      
+      // Create log entry
+      const { error: logError } = await supabase
+        .from('admin_logs')
+        .insert([
+          {
+            admin_id: adminId,
+            admin_name: adminName,
+            action,
+            target_discord_id: userId,
+            description
+          }
+        ])
+      
+      if (logError) {
+        throw logError
+      }
+      
+      // Perform the action via RPC if needed
+      if (rpcFunction) {
+        const { error: rpcError } = await supabase.rpc(rpcFunction, rpcParams)
+        
+        if (rpcError) {
+          throw rpcError
+        }
+      }
+      
+      // Show success message
+      setStatusMessage({ 
+        type: 'success', 
+        message: `Successfully ${action.toLowerCase()}ed user ${username}` 
+      })
+      
+      // Refresh data
+      loadUsers(userPage, userLimit, userSearch, userStatusFilter)
+      
+    } catch (error) {
+      console.error(`Error performing ${action}:`, error)
+      setStatusMessage({ 
+        type: 'error', 
+        message: `Failed to ${action.toLowerCase()} user: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      })
+    } finally {
+      setLoadingState(prev => ({ ...prev, action: false }))
+      
+      // Clear status message after 3 seconds
+      setTimeout(() => {
+        setStatusMessage({ type: null, message: '' })
+      }, 3000)
     }
-
-    document.addEventListener('openUserPanel', openUserPanelHandler as EventListener)
-    document.addEventListener('toggleUserSelection', toggleUserSelectionHandler as EventListener)
-
-    return () => {
-      document.removeEventListener('openUserPanel', openUserPanelHandler as EventListener)
-      document.removeEventListener('toggleUserSelection', toggleUserSelectionHandler as EventListener)
+  }
+  
+  // Refresh all data
+  const refreshAllData = async () => {
+    if (loadingState.refreshing) return
+    
+    setLoadingState(prev => ({ ...prev, refreshing: true }))
+    
+    try {
+      await Promise.all([
+        loadUsers(userPage, userLimit, userSearch, userStatusFilter),
+        loadLogs(logPage, logLimit, logFilters),
+        loadAnalytics()
+      ])
+      
+      if (selectedUser) {
+        await loadUserPageAnalytics(selectedUser)
+      }
+      
+      setStatusMessage({ type: 'success', message: 'Data refreshed successfully' })
+    } catch (error) {
+      console.error('Error refreshing data:', error)
+      setStatusMessage({ type: 'error', message: 'Failed to refresh data' })
+    } finally {
+      setLoadingState(prev => ({ ...prev, refreshing: false }))
+      
+      // Clear status message after 3 seconds
+      setTimeout(() => {
+        setStatusMessage({ type: null, message: '' })
+      }, 3000)
     }
-  }, [openUserPanel, toggleUserSelection])
-
-  // Update table when filtered users change
-  useEffect(() => {
-    renderTable()
-  }, [filteredUsers, renderTable])
-
-  if (loading || !isAdmin()) {
+  }
+  
+  // If still loading auth or not admin, show loading state
+  if (loading || !checkAdminAccess()) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#121212]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00c6ff]"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0a0a] to-[#1a1a1a]">
+        <div className="flex flex-col items-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-white/70 animate-pulse">Loading admin dashboard...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#f0f0f0] p-4 md:p-8">
-      <div className={`max-w-[1600px] mx-auto bg-[rgba(30,30,30,0.9)] rounded-xl p-4 md:p-8 border border-white/5 shadow-2xl relative transition-all ${showSidePanel ? 'mr-[400px]' : ''}`} id="mainContainer">
-        <Link href="/" className="inline-flex items-center gap-2 bg-transparent text-[#00c6ff] border border-[#00c6ff] rounded-md px-4 py-2 text-sm font-semibold hover:bg-[rgba(0,198,255,0.1)] transition-all mb-4">
-          ← Back
-        </Link>
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] to-[#1a1a1a] text-white p-4 md:p-6 lg:p-8">
+      <div className="max-w-[1600px] mx-auto">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-[#00c6ff] to-[#0072ff] inline-block text-transparent bg-clip-text">
+              Admin Dashboard
+            </h1>
+            <p className="text-white/60 mt-1">Manage users, view logs, and analyze usage</p>
+          </div>
+          
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => router.push('/')}
+              className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/80 hover:text-white transition-colors flex items-center gap-2"
+            >
+              <ChevronLeft size={16} />
+              Back to Home
+            </button>
+            
+            <button
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/80 hover:text-white transition-colors"
+            >
+              {showAdvanced ? 'Hide' : 'Show'} Advanced Features
+            </button>
+            
+            <button
+              onClick={refreshAllData}
+              disabled={loadingState.refreshing}
+              className="px-4 py-2 bg-primary-500/20 hover:bg-primary-500/30 border border-primary-500/30 rounded-lg text-primary-500 hover:text-primary-400 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingState.refreshing ? (
+                <>
+                  <LoadingSpinner size="xs" className="animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={16} />
+                  Refresh Data
+                </>
+              )}
+            </button>
+          </div>
+        </div>
         
-        <h1 className="text-3xl md:text-4xl font-bold text-center text-[#00c6ff] mb-8">Admin Dashboard</h1>
-
-        <Tabs defaultValue="users">
-          <TabsList className="mb-8">
-            <TabsTrigger value="users">User Management</TabsTrigger>
+        {/* Status Message */}
+        {statusMessage.type && (
+          <div className={`mb-6 p-4 rounded-lg ${
+            statusMessage.type === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' :
+            statusMessage.type === 'error' ? 'bg-red-500/10 border border-red-500/30 text-red-400' :
+            statusMessage.type === 'warning' ? 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-400' :
+            'bg-blue-500/10 border border-blue-500/30 text-blue-400'
+          }`}>
+            {statusMessage.message}
+          </div>
+        )}
+        
+        {/* Main Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="logs">Admin Logs</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="users">
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-              <input 
-                type="text" 
-                id="newDiscordId" 
-                placeholder="Enter Discord ID"
-                className="flex-1 p-3 bg-white/5 border border-white/20 rounded-lg text-white"
-              />
-              <input 
-                type="text" 
-                id="newUsername" 
-                placeholder="Enter Username"
-                className="flex-1 p-3 bg-white/5 border border-white/20 rounded-lg text-white"
-              />
-              <button 
-                onClick={addUser} 
-                id="addUserBtn"
-                className="px-6 py-3 bg-[#00c6ff] text-black font-bold rounded-lg hover:bg-[#00a9db] transition-all"
-              >
-                Whitelist User
-              </button>
-            </div>
-
-            <button 
-              className="px-4 py-2 bg-transparent text-[#00c6ff] border border-[#00c6ff] rounded-md text-sm font-semibold hover:bg-[rgba(0,198,255,0.1)] transition-all mb-6"
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            >
-              {showAdvancedFilters ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
-            </button>
-
-            <div className={`bg-white/[0.02] rounded-xl p-4 md:p-6 border border-white/5 mb-6 transition-all ${showAdvancedFilters ? 'block' : 'hidden'}`} id="advancedFilters">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="text-white/70 text-sm">Status</label>
-                  <select 
-                    id="filterStatus" 
-                    onChange={() => applyFiltersAndSort()}
-                    className="p-3 bg-[#2a2a2a] border border-white/20 rounded-lg text-white"
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-6">
+            <div className="bg-[#141414]/90 backdrop-blur-xl border border-white/10 rounded-xl p-6 overflow-hidden">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h2 className="text-xl font-semibold text-primary-500">User Management</h2>
+                
+                <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                  <div className="relative flex-grow md:flex-grow-0 md:w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search users..."
+                      value={userSearch}
+                      onChange={(e) => handleUserSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/30"
+                    />
+                  </div>
+                  
+                  <select
+                    value={userStatusFilter}
+                    onChange={(e) => {
+                      setUserStatusFilter(e.target.value as any)
+                      setUserPage(0)
+                      loadUsers(0, userLimit, userSearch, e.target.value as any)
+                    }}
+                    className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/30"
                   >
                     <option value="all">All Users</option>
                     <option value="whitelisted">Whitelisted</option>
                     <option value="revoked">Revoked</option>
-                    <option value="trial">On Trial</option>
+                    <option value="trial">Trial</option>
                   </select>
-                </div>
-                
-                <div className="flex flex-col gap-2">
-                  <label className="text-white/70 text-sm">Login Activity</label>
-                  <select 
-                    id="filterActivity" 
-                    onChange={() => applyFiltersAndSort()}
-                    className="p-3 bg-[#2a2a2a] border border-white/20 rounded-lg text-white"
+                  
+                  <select
+                    value={userLimit}
+                    onChange={(e) => {
+                      const newLimit = parseInt(e.target.value)
+                      setUserLimit(newLimit)
+                      setUserPage(0)
+                      loadUsers(0, newLimit, userSearch, userStatusFilter)
+                    }}
+                    className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/30"
                   >
-                    <option value="all">All Activity</option>
-                    <option value="active_24h">Active 24h</option>
-                    <option value="active_7d">Active 7d</option>
-                    <option value="active_30d">Active 30d</option>
-                    <option value="never_logged">Never Logged In</option>
-                  </select>
-                </div>
-                
-                <div className="flex flex-col gap-2">
-                  <label className="text-white/70 text-sm">Account Type</label>
-                  <select 
-                    id="filterType" 
-                    onChange={() => applyFiltersAndSort()}
-                    className="p-3 bg-[#2a2a2a] border border-white/20 rounded-lg text-white"
-                  >
-                    <option value="all">All Types</option>
-                    <option value="admin">Admins</option>
-                    <option value="regular">Regular Users</option>
-                    <option value="trial">Trial Users</option>
-                  </select>
-                </div>
-                
-                <div className="flex flex-col gap-2">
-                  <label className="text-white/70 text-sm">Date Range</label>
-                  <select 
-                    id="filterDateRange" 
-                    onChange={() => applyFiltersAndSort()}
-                    className="p-3 bg-[#2a2a2a] border border-white/20 rounded-lg text-white"
-                  >
-                    <option value="all">All Time</option>
-                    <option value="today">Today</option>
-                    <option value="week">This Week</option>
-                    <option value="month">This Month</option>
-                    <option value="quarter">This Quarter</option>
+                    <option value="10">10 per page</option>
+                    <option value="25">25 per page</option>
+                    <option value="50">50 per page</option>
                   </select>
                 </div>
               </div>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-              <input 
-                type="text" 
-                id="searchInput" 
-                placeholder="Search Discord ID, Username, or Email"
-                className="flex-1 p-3 bg-white/5 border border-white/20 rounded-lg text-white"
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <select 
-                id="sortBy" 
-                onChange={() => applyFiltersAndSort()}
-                className="p-3 bg-[#2a2a2a] border border-white/20 rounded-lg text-white"
-              >
-                <option value="last_login">Sort: Last Login</option>
-                <option value="login_count">Sort: Login Count</option>
-                <option value="username">Sort: Username</option>
-                <option value="created_at">Sort: Date Added</option>
-                <option value="trial_expiration">Sort: Trial Expiration</option>
-              </select>
-              <button 
-                onClick={loadUsers} 
-                id="refreshBtn"
-                disabled={isRefreshing}
-                className="px-6 py-3 bg-[#00c6ff] text-black font-bold rounded-lg hover:bg-[#00a9db] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isRefreshing ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-transparent border-t-black border-l-black rounded-full animate-spin"></div>
-                    <span>Loading...</span>
-                  </>
-                ) : 'Refresh'}
-              </button>
-            </div>
-
-            <div className={`bg-white/[0.02] rounded-xl p-4 md:p-6 border border-white/5 mb-6 ${selectedUsers.size > 0 ? 'block' : 'hidden'}`} id="bulkActions">
-              <h3 className="text-[#00c6ff] text-lg font-semibold mb-4">Bulk Actions (<span id="selectedCount">0</span> selected)</h3>
-              <div className="flex flex-wrap gap-3">
-                <button 
-                  className="px-4 py-2 bg-[#10b981] text-white rounded-lg hover:bg-[#0d9668] transition-all text-sm font-medium"
-                  onClick={bulkWhitelist}
-                >
-                  Whitelist Selected
-                </button>
-                <button 
-                  className="px-4 py-2 bg-[#ff4c4c] text-white rounded-lg hover:bg-[#e63939] transition-all text-sm font-medium"
-                  onClick={bulkRevoke}
-                >
-                  Revoke Selected
-                </button>
-                <button 
-                  className="px-4 py-2 bg-[#ffc107] text-black rounded-lg hover:bg-[#e5ac00] transition-all text-sm font-medium"
-                  onClick={bulkAddTrial}
-                >
-                  Add 7 Day Trial
-                </button>
-                <button 
-                  className="px-4 py-2 bg-[#ff4c4c] text-white rounded-lg hover:bg-[#e63939] transition-all text-sm font-medium"
-                  onClick={bulkDelete}
-                >
-                  Delete Selected
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-              <div className="bg-white/[0.04] rounded-xl p-4 border border-white/5 flex items-center gap-4 transition-all hover:bg-white/[0.06] hover:border-white/10">
-                <div className="text-2xl text-[#00c6ff]">👥</div>
-                <div>
-                  <h3 className="text-[#00c6ff] text-xs uppercase tracking-wider mb-1">Total Users</h3>
-                  <p className="text-xl font-bold text-white" id="totalUsers">—</p>
-                </div>
-              </div>
               
-              <div className="bg-white/[0.04] rounded-xl p-4 border border-white/5 flex items-center gap-4 transition-all hover:bg-white/[0.06] hover:border-white/10">
-                <div className="text-2xl text-[#00c6ff]">⚡</div>
-                <div>
-                  <h3 className="text-[#00c6ff] text-xs uppercase tracking-wider mb-1">Online Now</h3>
-                  <p className="text-xl font-bold text-white" id="onlineUsers">—</p>
-                </div>
-              </div>
-              
-              <div className="bg-white/[0.04] rounded-xl p-4 border border-white/5 flex items-center gap-4 transition-all hover:bg-white/[0.06] hover:border-white/10">
-                <div className="text-2xl text-[#00c6ff]">📈</div>
-                <div>
-                  <h3 className="text-[#00c6ff] text-xs uppercase tracking-wider mb-1">Total Logins</h3>
-                  <p className="text-xl font-bold text-white" id="totalLogins">—</p>
-                </div>
-              </div>
-              
-              <div className="bg-white/[0.04] rounded-xl p-4 border border-white/5 flex items-center gap-4 transition-all hover:bg-white/[0.06] hover:border-white/10">
-                <div className="text-2xl text-[#00c6ff]">🔒</div>
-                <div>
-                  <h3 className="text-[#00c6ff] text-xs uppercase tracking-wider mb-1">Revoked Users</h3>
-                  <p className="text-xl font-bold text-white" id="revokedUsers">—</p>
-                </div>
-              </div>
-              
-              <div className="bg-white/[0.04] rounded-xl p-4 border border-white/5 flex items-center gap-4 transition-all hover:bg-white/[0.06] hover:border-white/10">
-                <div className="text-2xl text-[#00c6ff]">🎯</div>
-                <div>
-                  <h3 className="text-[#00c6ff] text-xs uppercase tracking-wider mb-1">Trial Users</h3>
-                  <p className="text-xl font-bold text-white" id="trialUsers">—</p>
-                </div>
-              </div>
-              
-              <div className="bg-white/[0.04] rounded-xl p-4 border border-white/5 flex items-center gap-4 transition-all hover:bg-white/[0.06] hover:border-white/10">
-                <div className="text-2xl text-[#00c6ff]">⏰</div>
-                <div>
-                  <h3 className="text-[#00c6ff] text-xs uppercase tracking-wider mb-1">Active Last 24h</h3>
-                  <p className="text-xl font-bold text-white" id="activeUsers">—</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white/[0.01] rounded-xl overflow-hidden border border-white/5">
+              {/* Users Table */}
               <div className="overflow-x-auto">
-                <table className="w-full" id="usersTable">
-                  <thead>
+                <table className="w-full border-collapse">
+                  <thead className="bg-white/5">
                     <tr>
-                      <th className="p-4 bg-white/[0.03] border-b-2 border-white/10">
-                        <input 
-                          type="checkbox" 
-                          id="selectAll" 
-                          onChange={toggleSelectAll}
-                          className="w-5 h-5 rounded bg-white/10 border border-white/30 checked:bg-[#00c6ff] checked:border-[#00c6ff]"
-                        />
-                      </th>
-                      <th className="p-4 bg-white/[0.03] border-b-2 border-white/10 text-left text-[#00c6ff] font-semibold">Discord ID</th>
-                      <th className="p-4 bg-white/[0.03] border-b-2 border-white/10 text-left text-[#00c6ff] font-semibold">Username</th>
-                      <th className="p-4 bg-white/[0.03] border-b-2 border-white/10 text-left text-[#00c6ff] font-semibold">Added</th>
-                      <th className="p-4 bg-white/[0.03] border-b-2 border-white/10 text-left text-[#00c6ff] font-semibold">Last Login</th>
-                      <th className="p-4 bg-white/[0.03] border-b-2 border-white/10 text-left text-[#00c6ff] font-semibold">Login Count</th>
-                      <th className="p-4 bg-white/[0.03] border-b-2 border-white/10 text-left text-[#00c6ff] font-semibold">Status</th>
-                      <th className="p-4 bg-white/[0.03] border-b-2 border-white/10 text-left text-[#00c6ff] font-semibold">Trial</th>
-                      <th className="p-4 bg-white/[0.03] border-b-2 border-white/10 text-left text-[#00c6ff] font-semibold">Session</th>
-                      <th className="p-4 bg-white/[0.03] border-b-2 border-white/10 text-left text-[#00c6ff] font-semibold">Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">User</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Discord ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Joined</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Last Login</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {isLoading ? (
+                  <tbody className="divide-y divide-white/5">
+                    {loadingState.users ? (
                       <tr>
-                        <td colSpan={10} className="p-8 text-center text-white/50">
-                          <div className="flex justify-center">
-                            <div className="w-8 h-8 border-2 border-transparent border-t-[#00c6ff] border-l-[#00c6ff] rounded-full animate-spin"></div>
+                        <td colSpan={6} className="px-4 py-8 text-center">
+                          <div className="flex justify-center items-center">
+                            <LoadingSpinner />
+                            <span className="ml-3 text-white/70">Loading users...</span>
                           </div>
-                          <div className="mt-2">Loading users...</div>
                         </td>
                       </tr>
                     ) : filteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="p-8 text-center text-white/50">
+                        <td colSpan={6} className="px-4 py-8 text-center text-white/50">
                           No users found matching your criteria
                         </td>
                       </tr>
-                    ) : null}
+                    ) : (
+                      filteredUsers.map(user => (
+                        <tr key={user.id} className="hover:bg-white/5 transition-colors">
+                          <td className="px-4 py-4">
+                            <div className="font-medium">{user.username || 'Unknown'}</div>
+                          </td>
+                          <td className="px-4 py-4 font-mono text-xs text-white/70">
+                            {user.discord_id}
+                          </td>
+                          <td className="px-4 py-4">
+                            {user.revoked === false ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
+                                Whitelisted
+                              </span>
+                            ) : user.hub_trial && user.trial_expiration && new Date(user.trial_expiration) > new Date() ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 whitespace-nowrap">
+                                Trial ({Math.ceil((new Date(user.trial_expiration).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}d)
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
+                                Revoked
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-white/70">
+                            {formatDate(user.created_at)}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-white/70">
+                            {user.last_login ? timeAgo(user.last_login) : 'Never'}
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex space-x-2">
+                              {user.revoked !== false && (
+                                <button
+                                  onClick={() => performUserAction('WHITELIST', user.discord_id, user.username || 'Unknown')}
+                                  disabled={loadingState.action}
+                                  className="px-2 py-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded text-xs font-medium transition-colors"
+                                >
+                                  Whitelist
+                                </button>
+                              )}
+                              
+                              {user.revoked === false && (
+                                <button
+                                  onClick={() => performUserAction('REVOKE', user.discord_id, user.username || 'Unknown')}
+                                  disabled={loadingState.action}
+                                  className="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-xs font-medium transition-colors"
+                                >
+                                  Revoke
+                                </button>
+                              )}
+                              
+                              {showAdvanced && (
+                                <>
+                                  <button
+                                    onClick={() => performUserAction('TRIAL_7', user.discord_id, user.username || 'Unknown')}
+                                    disabled={loadingState.action}
+                                    className="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded text-xs font-medium transition-colors"
+                                  >
+                                    7d Trial
+                                  </button>
+                                  
+                                  <button
+                                    onClick={() => performUserAction('TRIAL_30', user.discord_id, user.username || 'Unknown')}
+                                    disabled={loadingState.action}
+                                    className="px-2 py-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-500 rounded text-xs font-medium transition-colors"
+                                  >
+                                    30d Trial
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
+              </div>
+              
+              {/* Pagination */}
+              <div className="flex justify-between items-center mt-6">
+                <div className="text-sm text-white/60">
+                  Showing {userPage * userLimit + 1}-{Math.min((userPage + 1) * userLimit, userCount)} of {userCount} users
+                </div>
+                
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => {
+                      const newPage = Math.max(0, userPage - 1)
+                      setUserPage(newPage)
+                      loadUsers(newPage, userLimit, userSearch, userStatusFilter)
+                    }}
+                    disabled={userPage === 0}
+                    className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-white/70 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Previous
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      const newPage = userPage + 1
+                      setUserPage(newPage)
+                      loadUsers(newPage, userLimit, userSearch, userStatusFilter)
+                    }}
+                    disabled={(userPage + 1) * userLimit >= userCount}
+                    className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-white/70 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           </TabsContent>
           
-          <TabsContent value="analytics">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white/[0.02] rounded-xl p-4 text-center border border-white/5 transition-all hover:bg-white/[0.04] hover:border-white/10">
-                <div className="text-2xl font-bold text-[#00c6ff] mb-1" id="total-users">0</div>
-                <div className="text-xs text-white/70 uppercase tracking-wider">Active Users</div>
-              </div>
-              
-              <div className="bg-white/[0.02] rounded-xl p-4 text-center border border-white/5 transition-all hover:bg-white/[0.04] hover:border-white/10">
-                <div className="text-2xl font-bold text-[#00c6ff] mb-1" id="total-sessions">0</div>
-                <div className="text-xs text-white/70 uppercase tracking-wider">Total Sessions</div>
-              </div>
-              
-              <div className="bg-white/[0.02] rounded-xl p-4 text-center border border-white/5 transition-all hover:bg-white/[0.04] hover:border-white/10">
-                <div className="text-2xl font-bold text-[#00c6ff] mb-1" id="avg-session-time">0m</div>
-                <div className="text-xs text-white/70 uppercase tracking-wider">Avg Session Time</div>
-              </div>
-              
-              <div className="bg-white/[0.02] rounded-xl p-4 text-center border border-white/5 transition-all hover:bg-white/[0.04] hover:border-white/10">
-                <div className="text-2xl font-bold text-[#00c6ff] mb-1" id="total-pages">0</div>
-                <div className="text-xs text-white/70 uppercase tracking-wider">Unique Pages</div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <div className="bg-white/[0.05] rounded-xl p-6 border border-white/10 transition-all hover:bg-white/[0.06] hover:border-white/15">
-                <h2 className="text-xl font-semibold text-[#00c6ff] mb-4 flex items-center gap-2">
-                  <span>Top Pages by Time Spent</span>
-                  <span className="text-white">🏆</span>
-                </h2>
+          {/* Logs Tab */}
+          <TabsContent value="logs" className="space-y-6">
+            <div className="bg-[#141414]/90 backdrop-blur-xl border border-white/10 rounded-xl p-6 overflow-hidden">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h2 className="text-xl font-semibold text-primary-500">Admin Audit Logs</h2>
                 
-                <div className="flex items-center gap-4 mb-4">
-                  <select 
-                    id="pages-limit"
-                    className="p-2.5 bg-[#1c1c1c] border border-white/20 rounded-lg text-white"
-                    value={pagesLimit}
-                    onChange={(e) => setPagesLimit(parseInt(e.target.value))}
-                  >
-                    <option value={10}>Top 10</option>
-                    <option value={15}>Top 15</option>
-                    <option value={25}>Top 25</option>
-                  </select>
-                </div>
-                
-                <div className="overflow-x-auto">
-                  <table className="w-full" id="top-pages-table">
-                    <thead>
-                      <tr>
-                        <th className="p-3 bg-[rgba(0,198,255,0.1)] text-left text-[#00c6ff] font-semibold border-b border-white/10">Rank</th>
-                        <th className="p-3 bg-[rgba(0,198,255,0.1)] text-left text-[#00c6ff] font-semibold border-b border-white/10">Page</th>
-                        <th className="p-3 bg-[rgba(0,198,255,0.1)] text-left text-[#00c6ff] font-semibold border-b border-white/10">Total Time</th>
-                        <th className="p-3 bg-[rgba(0,198,255,0.1)] text-left text-[#00c6ff] font-semibold border-b border-white/10">Sessions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td colSpan={4} className="p-4 text-center text-white/50">Loading...</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="bg-white/[0.05] rounded-xl p-6 border border-white/10 transition-all hover:bg-white/[0.06] hover:border-white/15">
-                <h2 className="text-xl font-semibold text-[#00c6ff] mb-4 flex items-center gap-2">
-                  <span>User Page Analytics</span>
-                  <span className="text-white">👤</span>
-                </h2>
-                
-                <div className="flex flex-col md:flex-row gap-4 mb-4">
-                  <select 
-                    id="user-select"
-                    className="flex-1 p-2.5 bg-[#1c1c1c] border border-white/20 rounded-lg text-white"
-                    value={selectedAnalyticsUser}
-                    onChange={(e) => setSelectedAnalyticsUser(e.target.value)}
-                  >
-                    <option value="">Select a user...</option>
-                  </select>
-                  
-                  <div className="flex items-center gap-2">
-                    <label className="text-white/70">Min time:</label>
-                    <input 
-                      type="number" 
-                      id="min-time" 
-                      placeholder="0" 
-                      min="0" 
-                      className="w-20 p-2.5 bg-[#1c1c1c] border border-white/20 rounded-lg text-white"
-                      value={minTime}
-                      onChange={(e) => setMinTime(parseFloat(e.target.value) || 0)}
+                <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                  <div className="relative flex-grow md:flex-grow-0 md:w-48">
+                    <input
+                      type="text"
+                      placeholder="Filter by admin..."
+                      value={logFilters.admin}
+                      onChange={(e) => handleLogFilterChange('admin', e.target.value)}
+                      className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/30"
                     />
-                    <span className="text-white/70">minutes</span>
                   </div>
                   
-                  <select 
-                    id="sort-by"
-                    className="p-2.5 bg-[#1c1c1c] border border-white/20 rounded-lg text-white"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
+                  <div className="relative flex-grow md:flex-grow-0 md:w-48">
+                    <input
+                      type="text"
+                      placeholder="Filter by action..."
+                      value={logFilters.action}
+                      onChange={(e) => handleLogFilterChange('action', e.target.value)}
+                      className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/30"
+                    />
+                  </div>
+                  
+                  <div className="relative flex-grow md:flex-grow-0 md:w-48">
+                    <input
+                      type="text"
+                      placeholder="Filter by target..."
+                      value={logFilters.target}
+                      onChange={(e) => handleLogFilterChange('target', e.target.value)}
+                      className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/30"
+                    />
+                  </div>
+                  
+                  <select
+                    value={logLimit}
+                    onChange={(e) => {
+                      const newLimit = parseInt(e.target.value)
+                      setLogLimit(newLimit)
+                      setLogPage(0)
+                      loadLogs(0, newLimit, logFilters)
+                    }}
+                    className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/30"
                   >
-                    <option value="time">Sort by Time</option>
-                    <option value="sessions">Sort by Sessions</option>
-                    <option value="page">Sort by Page</option>
+                    <option value="15">15 per page</option>
+                    <option value="25">25 per page</option>
+                    <option value="50">50 per page</option>
                   </select>
                 </div>
-                
-                <div id="user-stats" className="hidden mb-4">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-white/[0.02] rounded-lg p-3 text-center border border-white/5">
-                      <div className="text-xl font-bold text-[#00c6ff]" id="user-total-time">0m</div>
-                      <div className="text-xs text-white/70 uppercase tracking-wider">Total Time</div>
-                    </div>
-                    
-                    <div className="bg-white/[0.02] rounded-lg p-3 text-center border border-white/5">
-                      <div className="text-xl font-bold text-[#00c6ff]" id="user-total-sessions">0</div>
-                      <div className="text-xs text-white/70 uppercase tracking-wider">Total Sessions</div>
-                    </div>
-                    
-                    <div className="bg-white/[0.02] rounded-lg p-3 text-center border border-white/5">
-                      <div className="text-xl font-bold text-[#00c6ff]" id="user-unique-pages">0</div>
-                      <div className="text-xs text-white/70 uppercase tracking-wider">Unique Pages</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="overflow-x-auto">
-                  <table className="w-full" id="user-pages-table">
-                    <thead>
-                      <tr>
-                        <th className="p-3 bg-[rgba(0,198,255,0.1)] text-left text-[#00c6ff] font-semibold border-b border-white/10">Page</th>
-                        <th className="p-3 bg-[rgba(0,198,255,0.1)] text-left text-[#00c6ff] font-semibold border-b border-white/10">Sessions</th>
-                        <th className="p-3 bg-[rgba(0,198,255,0.1)] text-left text-[#00c6ff] font-semibold border-b border-white/10">Total Time</th>
-                        <th className="p-3 bg-[rgba(0,198,255,0.1)] text-left text-[#00c6ff] font-semibold border-b border-white/10">Avg Time</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td colSpan={4} className="p-8 text-center text-white/50">
-                          Select a user to view their page analytics
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white/[0.05] rounded-xl p-6 border border-white/10 transition-all hover:bg-white/[0.06] hover:border-white/15">
-              <h2 className="text-xl font-semibold text-[#00c6ff] mb-4 flex items-center gap-2">
-                <span>Admin Audit Logs</span>
-                <span className="text-white">📝</span>
-              </h2>
-              
-              <div className="flex flex-wrap gap-3 mb-4">
-                <input 
-                  id="filter-admin" 
-                  placeholder="Admin name" 
-                  className="flex-1 min-w-[200px] p-2.5 bg-[#1c1c1c] border border-white/20 rounded-lg text-white"
-                  value={filterAdmin}
-                  onChange={(e) => setFilterAdmin(e.target.value)}
-                />
-                <input 
-                  id="filter-action" 
-                  placeholder="Action" 
-                  className="flex-1 min-w-[200px] p-2.5 bg-[#1c1c1c] border border-white/20 rounded-lg text-white"
-                  value={filterAction}
-                  onChange={(e) => setFilterAction(e.target.value)}
-                />
-                <input 
-                  id="filter-desc" 
-                  placeholder="Description" 
-                  className="flex-1 min-w-[200px] p-2.5 bg-[#1c1c1c] border border-white/20 rounded-lg text-white"
-                  value={filterDesc}
-                  onChange={(e) => setFilterDesc(e.target.value)}
-                />
-                <input 
-                  id="filter-target" 
-                  placeholder="Target Username" 
-                  className="flex-1 min-w-[200px] p-2.5 bg-[#1c1c1c] border border-white/20 rounded-lg text-white"
-                  value={filterTarget}
-                  onChange={(e) => setFilterTarget(e.target.value)}
-                />
-                <select 
-                  id="logs-limit"
-                  className="p-2.5 bg-[#1c1c1c] border border-white/20 rounded-lg text-white"
-                  value={logsLimit}
-                  onChange={(e) => setLogsLimit(parseInt(e.target.value))}
-                >
-                  <option value={15}>15 per page</option>
-                  <option value={25}>25 per page</option>
-                  <option value={50}>50 per page</option>
-                </select>
               </div>
               
+              {/* Logs Table */}
               <div className="overflow-x-auto">
-                <table className="w-full" id="audit-log-table">
-                  <thead>
+                <table className="w-full border-collapse">
+                  <thead className="bg-white/5">
                     <tr>
-                      <th className="p-3 bg-[rgba(0,198,255,0.1)] text-left text-[#00c6ff] font-semibold border-b border-white/10">Admin</th>
-                      <th className="p-3 bg-[rgba(0,198,255,0.1)] text-left text-[#00c6ff] font-semibold border-b border-white/10">Action</th>
-                      <th className="p-3 bg-[rgba(0,198,255,0.1)] text-left text-[#00c6ff] font-semibold border-b border-white/10">Description</th>
-                      <th className="p-3 bg-[rgba(0,198,255,0.1)] text-left text-[#00c6ff] font-semibold border-b border-white/10">Target</th>
-                      <th className="p-3 bg-[rgba(0,198,255,0.1)] text-left text-[#00c6ff] font-semibold border-b border-white/10">Time</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Admin</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Action</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Description</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Target</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Time</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    <tr>
-                      <td colSpan={5} className="p-4 text-center text-white/50">Loading...</td>
-                    </tr>
+                  <tbody className="divide-y divide-white/5">
+                    {loadingState.logs ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center">
+                          <div className="flex justify-center items-center">
+                            <LoadingSpinner />
+                            <span className="ml-3 text-white/70">Loading logs...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : logs.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-white/50">
+                          No logs found matching your criteria
+                        </td>
+                      </tr>
+                    ) : (
+                      logs.map(log => (
+                        <tr key={log.id} className="hover:bg-white/5 transition-colors">
+                          <td className="px-4 py-4">
+                            <div className="font-medium">{log.admin_name || 'Unknown'}</div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              log.action === 'WHITELIST' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                              log.action === 'REVOKE' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                              log.action?.includes('TRIAL') ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                              'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                            }`}>
+                              {log.action}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-sm text-white/70">
+                            {log.description}
+                          </td>
+                          <td className="px-4 py-4 font-mono text-xs text-white/70">
+                            {log.target_discord_id}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-white/70">
+                            {formatDate(log.created_at)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
               
-              <div className="flex justify-center items-center gap-4 mt-4">
-                <button 
-                  id="prev-log"
-                  className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => logsPage > 0 && setLogsPage(logsPage - 1)}
-                  disabled={logsPage === 0}
-                >
-                  ← Previous
-                </button>
-                <span id="page-info" className="text-white/70">Page {logsPage + 1}</span>
-                <button 
-                  id="next-log"
-                  className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => setLogsPage(logsPage + 1)}
-                >
-                  Next →
-                </button>
+              {/* Pagination */}
+              <div className="flex justify-between items-center mt-6">
+                <div className="text-sm text-white/60">
+                  Showing {logPage * logLimit + 1}-{Math.min((logPage + 1) * logLimit, logCount)} of {logCount} logs
+                </div>
+                
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => {
+                      const newPage = Math.max(0, logPage - 1)
+                      setLogPage(newPage)
+                      loadLogs(newPage, logLimit, logFilters)
+                    }}
+                    disabled={logPage === 0}
+                    className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-white/70 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Previous
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      const newPage = logPage + 1
+                      setLogPage(newPage)
+                      loadLogs(newPage, logLimit, logFilters)
+                    }}
+                    disabled={(logPage + 1) * logLimit >= logCount}
+                    className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-white/70 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* Side Panel */}
-      <div className={`fixed top-0 right-0 w-[400px] h-full bg-[rgba(20,20,20,0.98)] backdrop-blur-xl border-l border-white/10 z-50 overflow-y-auto p-8 transition-all duration-300 ${showSidePanel ? 'translate-x-0' : 'translate-x-full'}`} id="sidePanel">
-        <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/10">
-          <h2 className="text-2xl font-semibold text-[#00c6ff]">User Details</h2>
-          <button 
-            className="bg-transparent text-white/70 hover:text-white text-2xl border-none cursor-pointer"
-            onClick={() => setShowSidePanel(false)}
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="bg-white/[0.03] rounded-xl p-6 border border-white/5 mb-6" id="userInfoPanel">
-          {/* User info will be populated here */}
-        </div>
-
-        <div className="bg-white/[0.02] rounded-xl p-6 border border-white/5 mb-6">
-          <h3 className="text-lg font-semibold text-[#00c6ff] mb-4">Quick Actions</h3>
-          <div className="space-y-3" id="actionButtons">
-            {/* Action buttons will be populated here */}
-          </div>
-        </div>
-
-        <div className="bg-white/[0.02] rounded-xl p-6 border border-white/5">
-          <h3 className="text-lg font-semibold text-[#00c6ff] mb-4">Audit Log</h3>
-          <div className="max-h-[300px] overflow-y-auto bg-black/20 rounded-lg p-4" id="auditLog">
-            {/* Audit log will be populated here */}
-          </div>
-        </div>
-      </div>
-
-      {/* Blueprint Popup */}
-      {showBlueprintPopup && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-          <div className="bg-[#1e1e1e] rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-[#00c6ff]">Selected Blueprints</h3>
-              <button 
-                className="text-white/70 hover:text-white text-2xl"
-                onClick={() => setShowBlueprintPopup(false)}
-              >
-                ×
-              </button>
+          
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            {/* Overview Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-[#141414]/90 backdrop-blur-xl border border-white/10 rounded-xl p-6">
+                <div className="text-2xl font-bold text-primary-500 mb-1">
+                  {loadingState.analytics ? (
+                    <div className="w-16 h-8 bg-white/10 animate-pulse rounded"></div>
+                  ) : (
+                    users.filter(u => u.revoked === false).length
+                  )}
+                </div>
+                <div className="text-sm text-white/60">Active Users</div>
+              </div>
+              
+              <div className="bg-[#141414]/90 backdrop-blur-xl border border-white/10 rounded-xl p-6">
+                <div className="text-2xl font-bold text-primary-500 mb-1">
+                  {loadingState.analytics ? (
+                    <div className="w-16 h-8 bg-white/10 animate-pulse rounded"></div>
+                  ) : (
+                    users.filter(u => u.hub_trial && u.trial_expiration && new Date(u.trial_expiration) > new Date()).length
+                  )}
+                </div>
+                <div className="text-sm text-white/60">Active Trials</div>
+              </div>
+              
+              <div className="bg-[#141414]/90 backdrop-blur-xl border border-white/10 rounded-xl p-6">
+                <div className="text-2xl font-bold text-primary-500 mb-1">
+                  {loadingState.analytics ? (
+                    <div className="w-16 h-8 bg-white/10 animate-pulse rounded"></div>
+                  ) : (
+                    pageAnalytics.reduce((sum, page) => sum + page.sessions, 0)
+                  )}
+                </div>
+                <div className="text-sm text-white/60">Total Sessions</div>
+              </div>
+              
+              <div className="bg-[#141414]/90 backdrop-blur-xl border border-white/10 rounded-xl p-6">
+                <div className="text-2xl font-bold text-primary-500 mb-1">
+                  {loadingState.analytics ? (
+                    <div className="w-16 h-8 bg-white/10 animate-pulse rounded"></div>
+                  ) : (
+                    pageAnalytics.length
+                  )}
+                </div>
+                <div className="text-sm text-white/60">Unique Pages</div>
+              </div>
             </div>
             
-            <ul className="space-y-2">
-              {userBlueprints.length > 0 ? (
-                userBlueprints.map((bp, index) => (
-                  <li key={index} className="py-2 border-b border-white/10 last:border-b-0">
-                    {bp}
-                  </li>
-                ))
-              ) : (
-                <li className="py-4 text-center text-white/50">No blueprints selected</li>
-              )}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      <style jsx>{`
-        /* Status badges */
-        .status-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.25rem 0.75rem;
-          border-radius: 1rem;
-          font-size: 0.8rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .status-whitelisted {
-          background: rgba(167, 243, 208, 0.2);
-          color: #a7f3d0;
-          border: 1px solid rgba(167, 243, 208, 0.3);
-        }
-
-        .status-revoked {
-          background: rgba(255, 76, 76, 0.2);
-          color: #ff4c4c;
-          border: 1px solid rgba(255, 76, 76, 0.3);
-        }
-
-        .status-trial {
-          background: rgba(255, 193, 7, 0.2);
-          color: #ffc107;
-          border: 1px solid rgba(255, 193, 7, 0.3);
-        }
-
-        .status-online {
-          background: rgba(34, 197, 94, 0.2);
-          color: #22c55e;
-          border: 1px solid rgba(34, 197, 94, 0.3);
-        }
-
-        .status-offline {
-          background: rgba(107, 114, 128, 0.2);
-          color: #9ca3af;
-          border: 1px solid rgba(107, 114, 128, 0.3);
-        }
-
-        /* Admin badge */
-        .admin-badge {
-          display: inline-block;
-          background: linear-gradient(45deg, #ffd700, #ffed4e);
-          color: #000;
-          padding: 0.2rem 0.5rem;
-          border-radius: 0.5rem;
-          font-size: 0.7rem;
-          font-weight: 700;
-          margin-left: 0.5rem;
-        }
-
-        /* Trial badge */
-        .trial-badge {
-          display: inline-block;
-          background: linear-gradient(45deg, #ffc107, #ff8f00);
-          color: #000;
-          padding: 0.2rem 0.5rem;
-          border-radius: 0.5rem;
-          font-size: 0.7rem;
-          font-weight: 700;
-          white-space: nowrap;
-        }
-
-        /* Dropdown */
-        .dropdown {
-          position: relative;
-          display: inline-block;
-        }
-
-        .dropdown-content {
-          display: none;
-          position: absolute;
-          right: 0;
-          background-color: #222;
-          border: 1px solid #444;
-          min-width: 120px;
-          border-radius: 0.5rem;
-          z-index: 1;
-          overflow: hidden;
-        }
-
-        .dropdown-content.show {
-          display: block;
-        }
-
-        .dropdown-content button {
-          display: block;
-          width: 100%;
-          padding: 0.5rem 1rem;
-          text-align: left;
-          background: none;
-          border: none;
-          color: white;
-          cursor: pointer;
-          transition: background-color 0.2s;
-        }
-
-        .dropdown-content button:hover {
-          background-color: #333;
-        }
-
-        .dropdown-content .delete-action {
-          color: #ff4c4c;
-        }
-
-        /* Audit log icons */
-        .audit-icon {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          margin-top: 0.5rem;
-          flex-shrink: 0;
-        }
-
-        .audit-icon.whitelist,
-        .audit-icon.bulk_whitelist {
-          background-color: #22c55e;
-        }
-
-        .audit-icon.revoke,
-        .audit-icon.bulk_revoke {
-          background-color: #ef4444;
-        }
-
-        .audit-icon.delete,
-        .audit-icon.bulk_delete {
-          background-color: #dc2626;
-        }
-
-        .audit-icon.trial,
-        .audit-icon.bulk_trial {
-          background-color: #ffd700;
-        }
-
-        /* Toast */
-        .toast {
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          padding: 20px 30px;
-          border-radius: 16px;
-          background: rgba(25, 25, 25, 0.75);
-          backdrop-filter: blur(12px);
-          color: #e0e0e0;
-          font-weight: 600;
-          font-size: 16px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-          z-index: 9999;
-          opacity: 0.98;
-          max-width: 90%;
-          min-width: 250px;
-          text-align: center;
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 12px;
-        }
-
-        .toast.success {
-          border-left: 4px solid #10b981;
-        }
-
-        .toast.error {
-          border-left: 4px solid #ef4444;
-        }
-
-        .toast.info {
-          border-left: 4px solid #3b82f6;
-        }
-
-        /* Search highlight */
-        .search-highlight {
-          background: rgba(0, 198, 255, 0.3);
-          padding: 0.1rem 0.2rem;
-          border-radius: 0.2rem;
-        }
-
-        /* Page path */
-        .page-path {
-          font-family: 'Courier New', monospace;
-          background: rgba(255, 255, 255, 0.05);
-          padding: 0.25rem 0.5rem;
-          border-radius: 0.25rem;
-          font-size: 0.9rem;
-        }
-      `}</style>
+            {/* Page Analytics */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Top Pages */}
+              <div className="bg-[#141414]/90 backdrop-blur-xl border border-white/10 rounded-xl p-6 overflow-hidden">
+                <h2 className="text-xl font-semibold text-primary-500 mb-4">Top Pages by Usage</h2>
+                
+                {loadingState.analytics ? (
+                  <div className="flex justify-center items-center py-8">
+                    <LoadingSpinner />
+                    <span className="ml-3 text-white/70">Loading analytics...</span>
+                  </div>
+                ) : pageAnalytics.length === 0 ? (
+                  <div className="text-center py-8 text-white/50">
+                    No page analytics data available
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead className="bg-white/5">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Page</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Sessions</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Total Time</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {pageAnalytics.slice(0, 10).map((page, index) => (
+                          <tr key={index} className="hover:bg-white/5 transition-colors">
+                            <td className="px-4 py-3 font-medium">
+                              {page.page_path || '/'}
+                            </td>
+                            <td className="px-4 py-3 text-white/70">
+                              {page.sessions}
+                            </td>
+                            <td className="px-4 py-3 text-white/70">
+                              {formatTime(page.time_spent_seconds)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+              
+              {/* Top Users */}
+              <div className="bg-[#141414]/90 backdrop-blur-xl border border-white/10 rounded-xl p-6 overflow-hidden">
+                <h2 className="text-xl font-semibold text-primary-500 mb-4">Top Users by Engagement</h2>
+                
+                {loadingState.analytics ? (
+                  <div className="flex justify-center items-center py-8">
+                    <LoadingSpinner />
+                    <span className="ml-3 text-white/70">Loading analytics...</span>
+                  </div>
+                ) : topUsers.length === 0 ? (
+                  <div className="text-center py-8 text-white/50">
+                    No user analytics data available
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead className="bg-white/5">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">User</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Sessions</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Total Time</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Details</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {topUsers.map((user, index) => (
+                          <tr key={index} className="hover:bg-white/5 transition-colors">
+                            <td className="px-4 py-3 font-medium">
+                              {user.username || 'Unknown'}
+                            </td>
+                            <td className="px-4 py-3 text-white/70">
+                              {user.sessions}
+                            </td>
+                            <td className="px-4 py-3 text-white/70">
+                              {formatTime(user.time_spent)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={() => setSelectedUser(user.username)}
+                                className="px-2 py-1 bg-primary-500/20 hover:bg-primary-500/30 text-primary-500 rounded text-xs font-medium transition-colors"
+                              >
+                                View Details
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* User Page Analytics (conditional) */}
+            {selectedUser && (
+              <div className="bg-[#141414]/90 backdrop-blur-xl border border-white/10 rounded-xl p-6 overflow-hidden">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-primary-500">
+                    Page Analytics for {selectedUser}
+                  </h2>
+                  
+                  <button
+                    onClick={() => setSelectedUser(null)}
+                    className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-white/70 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+                
+                {userPageAnalytics.length === 0 ? (
+                  <div className="text-center py-8 text-white/50">
+                    No page analytics data available for this user
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead className="bg-white/5">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Page</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Sessions</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Total Time</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Avg Time</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {userPageAnalytics.map((page, index) => (
+                          <tr key={index} className="hover:bg-white/5 transition-colors">
+                            <td className="px-4 py-3 font-medium">
+                              {page.page_path || '/'}
+                            </td>
+                            <td className="px-4 py-3 text-white/70">
+                              {page.sessions}
+                            </td>
+                            <td className="px-4 py-3 text-white/70">
+                              {formatTime(page.time_spent_seconds)}
+                            </td>
+                            <td className="px-4 py-3 text-white/70">
+                              {formatTime(Math.round(page.time_spent_seconds / page.sessions))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }

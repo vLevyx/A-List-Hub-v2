@@ -140,6 +140,25 @@ export interface Database {
         Args: Record<PropertyKey, never>
         Returns: void
       }
+      admin_whitelist_user: {
+        Args: {
+          target_discord_id: string
+        }
+        Returns: void
+      }
+      admin_revoke_user: {
+        Args: {
+          target_discord_id: string
+        }
+        Returns: void
+      }
+      admin_add_trial: {
+        Args: {
+          target_discord_id: string
+          days: number
+        }
+        Returns: void
+      }
     }
   }
 }
