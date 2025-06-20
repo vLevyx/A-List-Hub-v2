@@ -28,7 +28,8 @@ type TradeRole = 'buyer' | 'seller'
 
 interface FormData {
   itemName: string
-  priceDetails: string
+  price: string
+  tradeDetails: string
   tradeRole: TradeRole
   urgency: UrgencyLevel
   specificTime?: string
@@ -40,7 +41,8 @@ interface RequestHistory {
   id: string
   user_discord_id: string
   item_name: string
-  price_details: string
+  price: string
+  trade_details: string
   trade_role: string
   urgency: string
   specific_time: string | null
@@ -61,7 +63,8 @@ export default function MiddlemanMarketPage() {
   // Form state
   const [formData, setFormData] = useState<FormData>({
     itemName: '',
-    priceDetails: '',
+    price: '',
+    tradeDetails: '',
     tradeRole: 'seller',
     urgency: 'asap',
     specificTime: '',
@@ -231,8 +234,8 @@ export default function MiddlemanMarketPage() {
       return
     }
     
-    if (!formData.priceDetails.trim()) {
-      setStatusMessage({ type: 'error', message: 'Please enter price or trade details.' })
+    if (!formData.price.trim()) {
+      setStatusMessage({ type: 'error', message: 'Please enter a price.' })
       return
     }
     
@@ -277,7 +280,8 @@ export default function MiddlemanMarketPage() {
         .insert([{
           user_discord_id: discordId,
           item_name: formData.itemName,
-          price_details: formData.priceDetails,
+          price: formData.price,
+          trade_details: formData.tradeDetails,
           trade_role: formData.tradeRole,
           urgency: formData.urgency,
           specific_time: formData.urgency === 'specific' ? formData.specificTime : null,
@@ -304,7 +308,8 @@ export default function MiddlemanMarketPage() {
       
       setFormData({
         itemName: '',
-        priceDetails: '',
+        price: '',
+        tradeDetails: '',
         tradeRole: 'seller',
         urgency: 'asap',
         specificTime: '',
@@ -424,17 +429,32 @@ export default function MiddlemanMarketPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="priceDetails" className="block text-white/90 font-medium mb-1">
-                      Price/Trade Details*
+                    <label htmlFor="price" className="block text-white/90 font-medium mb-1">
+                      Price*
+                    </label>
+                    <input
+                      type="text"
+                      id="price"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 5,000,000 E$"
+                      className="w-full p-3 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/30"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="tradeDetails" className="block text-white/90 font-medium mb-1">
+                      Trade Details
                     </label>
                     <textarea
-                      id="priceDetails"
-                      name="priceDetails"
-                      value={formData.priceDetails}
+                      id="tradeDetails"
+                      name="tradeDetails"
+                      value={formData.tradeDetails}
                       onChange={handleInputChange}
-                      placeholder="e.g., 5,000,000 E$ or trading for M416 + 3 magazines"
+                      placeholder="Additional details about the trade (optional)"
                       className="w-full p-3 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/30 min-h-[80px]"
-                      required
                     />
                   </div>
 
@@ -619,7 +639,10 @@ export default function MiddlemanMarketPage() {
                           {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                         </span>
                       </div>
-                      <p className="text-white/80 text-sm mb-2">{request.price_details}</p>
+                      <p className="text-white/80 text-sm mb-1"><strong>Price:</strong> {request.price}</p>
+                      {request.trade_details && (
+                        <p className="text-white/80 text-sm mb-2"><strong>Details:</strong> {request.trade_details}</p>
+                      )}
                       <div className="flex flex-wrap gap-2 text-xs text-white/60">
                         <span>Role: {request.trade_role.charAt(0).toUpperCase() + request.trade_role.slice(1)}</span>
                         <span>•</span>

@@ -1,4 +1,3 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -9,7 +8,8 @@ const corsHeaders = {
 
 interface RequestBody {
   itemName: string
-  priceDetails: string
+  price: string
+  tradeDetails: string
   tradeRole: 'buyer' | 'seller'
   urgency: 'asap' | 'flexible' | 'specific'
   specificTime?: string
@@ -20,7 +20,7 @@ interface RequestBody {
   timestamp: string
 }
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -109,9 +109,14 @@ serve(async (req) => {
           inline: true
         },
         {
-          name: 'Price/Trade Details',
-          value: requestData.priceDetails,
+          name: 'Price',
+          value: requestData.price,
           inline: true
+        },
+        {
+          name: 'Trade Details',
+          value: requestData.tradeDetails || 'N/A',
+          inline: false
         },
         {
           name: 'Role',
@@ -190,11 +195,13 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error:', error)
     
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
+    
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
